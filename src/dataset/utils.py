@@ -5,7 +5,7 @@ import numpy as np
 def normalize_values(dataFrame: pd.DataFrame) -> pd.DataFrame:
     ret = dataFrame
     for column in ret.columns:
-        if column not in [" Label", "target", "Attack Type"]:
+        if column not in [" Label", "target", "Attack Type","label"]:
             ret[column] = ret[column].replace(np.inf, 0) #replace inf with zero
             for value in ret[column].unique():
                 if value < 0:
@@ -50,6 +50,9 @@ def string_labels(dataFrames: list[pd.DataFrame]) -> list[str]:
     for df in dataFrames:
         if " Label" in df.columns:
             label = df[" Label"].unique()
+
+        elif "label" in df.columns:
+            label = df["label"].unique()
             
         elif "target" in df.columns:
             label = df["target"].unique()
@@ -71,6 +74,10 @@ def remove_labels(dataframes: list[pd.DataFrame], labels: list[str], labels_to_k
             if string not in labels_to_keep:
                 if " Label" in df.columns:
                     df = df[df[" Label"] != string]
+                
+                elif "label" in df.columns:
+                    df = df[df["label"] != string]
+
                     
                 elif "target" in df.columns:
                     df = df[df["target"] != string]
@@ -87,7 +94,7 @@ def convertStringsSD(dataFrames: list[pd.DataFrame], labels: list[str]) -> list[
     ret = []
     for df in dataFrames:
         for string in labels:
-            if string == "DDoS" or string == "dos" or string == "HTTPFlood":
+            if string == "DDoS" or string == "dos" or string == "HTTPFlood" or string == "Malicious":
                 df = df.replace(string, 1)
 
             elif string == "DoS Slowhttptest" or string == "DoS slowloris" or string == "slowite" or string == "SlowrateDoS":
