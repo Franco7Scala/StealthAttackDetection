@@ -56,6 +56,9 @@ def string_labels(dataFrames: list[pd.DataFrame]) -> list[str]:
             
         elif "target" in df.columns:
             label = df["target"].unique()
+
+        elif "attack" in df.columns: # for covert dataset
+            label = df["attack"].unique()
             
         else:
             label = df["Attack Type"].unique()
