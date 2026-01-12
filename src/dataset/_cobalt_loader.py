@@ -97,7 +97,7 @@ def _class_string2int(dataFrames: list[pd.DataFrame], labels: list[str]) -> list
 
 
 def load_cobalt_dataset() -> Cobailt:
-    paths_raw_files = [f"{get_base_dir()}/datasets/ccc/cobailtstrike.csv", f"{get_base_dir()}/datasets/ccc/benign.csv"]
+    paths_raw_files = [f"{get_base_dir()}/dataset/cobailtstrike.csv", f"{get_base_dir()}/dataset/benign.csv"]
     path_processed_dataset = f"{get_base_dir()}/datasets/ccc/processed_dataset.pkl"
 
     if os.path.isfile(path_processed_dataset):
