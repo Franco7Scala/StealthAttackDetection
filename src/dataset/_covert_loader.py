@@ -5,7 +5,7 @@ import pickle
 import torch
 from torch.utils.data import Dataset
 
-from src.utils import get_base_dir
+from src.support.utils import get_base_dir
 from src.dataset.utils import read_paths
 
 def load_covert_dataframe():

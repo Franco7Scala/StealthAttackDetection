@@ -6,7 +6,7 @@ from typing import Iterable
 
 from typing import Optional
 from torch.utils.data import Dataset
-from src.utils import get_base_dir
+from src.support.utils import get_base_dir
 from src.dataset.utils import remove_collinear_features, normalize_values, read_paths, string_labels, remove_labels
 
 
