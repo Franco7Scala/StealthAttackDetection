@@ -27,7 +27,7 @@ def _class_string2int(dataFrames: list[pandas.DataFrame], labels: list[str]) -> 
 
 
 def load_slowdos_dataframe() -> pandas.DataFrame:
-    paths_raw_files = [f"{get_base_dir()}/datasets/cicids/Wednesday-workingHours.pcap_ISCX.csv", f"{get_base_dir()}/cicids/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv"]
+    paths_raw_files = [f"{get_base_dir()}/datasets/cicids/Wednesday-workingHours.pcap_ISCX.csv", f"{get_base_dir()}/datasets/cicids/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv"]
     path_processed_dataset = f"{get_base_dir()}/datasets/cicids/processed_dataset.pkl"
 
     if os.path.isfile(path_processed_dataset):
@@ -39,7 +39,7 @@ def load_slowdos_dataframe() -> pandas.DataFrame:
         dataframes = remove_labels(dataframes, labels, ["DDoS", "DoS Slowhttptest", "DoS slowloris", "BENIGN"])
         dataframes = _class_string2int(dataframes, labels)
         dataframe = pandas.concat(dataframes)
-        dataframe = dataframe.drop([" Destination Port"], axis="columns", inplace=True)
-        dataframe.rename(columns={" Label": "attack"}, inplace=True)
+        dataframe = dataframe.drop([" Destination Port"], axis="columns")
+        dataframe = dataframe.rename(columns={" Label": "attack"})
         dataframe.to_pickle(path_processed_dataset)
         return dataframe

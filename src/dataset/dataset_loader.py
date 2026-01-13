@@ -1,7 +1,7 @@
 import torch
 import pandas as pd
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 from src.dataset._slowdos_loader import load_slowdos_dataframe
 from src.dataset._covert_loader import load_covert_dataframe
 from src.dataset._cobalt_loader import load_cobalt_dataset
@@ -64,9 +64,9 @@ def _split_dataframe(dataset, args):
         # remove_collinear_features(xy, 0.95)
         pass
 
-    test_dataset = Dataset(x_test, y_test)
-    train_unsupervised_dataset = Dataset(x_train_unsupervised)
-    train_few_shot_dataset = Dataset(x_train_few_shot, y_train_few_shot)
+    test_dataset = TensorDataset(x_test, y_test)
+    train_unsupervised_dataset = TensorDataset(x_train_unsupervised)
+    train_few_shot_dataset = TensorDataset(x_train_few_shot, y_train_few_shot)
 
     return (DataLoader(train_unsupervised_dataset, batch_size=args.batch_size, shuffle=True),
             DataLoader(train_few_shot_dataset, batch_size=args.batch_size, shuffle=True),
