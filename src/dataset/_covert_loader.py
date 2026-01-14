@@ -15,7 +15,7 @@ def load_covert_dataframe():
 
     paths_raw_files = [f"{get_base_dir()}/dataset/stego/PreprocessedStegoDataset-TRAINING.csv",
                        f"{get_base_dir()}/dataset/stego/PreprocessedStegoDataset-TEST.csv"]
-    path_processed_dataset = f"{get_base_dir()}/datasets/stego/processed_dataset.pkl"
+    path_processed_dataset = f"{get_base_dir()}/dataset/stego/processed_dataset.pkl"
 
     if os.path.isfile(path_processed_dataset):
         return pickle.load(open(path_processed_dataset, "rb"))

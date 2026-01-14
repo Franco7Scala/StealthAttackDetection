@@ -1,0 +1,15 @@
+{
+  "attack_type": "covert",
+  "seed": 42,
+  "train_normal_ratio" : 0.5,
+  "b_max": 80,
+  "n_train_attacks": 5,
+  "batch_size": 128,
+  "n_runs": 1,
+  "num_epochs": 1000,
+  "lr_D": 1e-4,
+  "lr_G": 1e-3,
+  "n_gpu": 0,
+  "SAVE_FOLDER": "./saved",
+  "apply_normalization": 1
+}

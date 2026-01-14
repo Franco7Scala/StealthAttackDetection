@@ -1,6 +1,8 @@
 import torch
 import pandas as pd
 
+from sklearn.preprocessing import MinMaxScaler
+
 from torch.utils.data import TensorDataset, DataLoader
 from src.dataset._slowdos_loader import load_slowdos_dataframe
 from src.dataset._covert_loader import load_covert_dataframe
@@ -12,18 +14,18 @@ def load_dataset(args):
     device = args.device
 
     if attack_type.lower() == "slowdos":
-        dataset = load_slowdos_dataframe()
+        dataframe = load_slowdos_dataframe()
 
     elif attack_type.lower() == "covert":
         dataframe = load_covert_dataframe()
 
     elif attack_type.lower() == "cobalt":
-        dataset = load_cobalt_dataset()
+        dataframe = load_cobalt_dataset()
 
     else:
         raise Exception(f"Unknown dataset for attack type '{attack_type}'!")
 
-    return _split_dataframe(dataset, args)
+    return _split_dataframe(dataframe, args)
 
 
 def _split_dataframe(dataset, args):
@@ -33,7 +35,7 @@ def _split_dataframe(dataset, args):
     df_normal_train = df_normal.sample(frac=args.train_normal_ratio, random_state=args.seed)
     df_normal_test = df_normal.drop(df_normal_train.index)
 
-    df_attack_budget = df_attack.sample(frac=args.b_max, random_state=args.seed)
+    df_attack_budget = df_attack.sample(n=args.b_max, random_state=args.seed)
     df_attack_test = df_attack.drop(df_attack_budget.index)
 
     df_attack_train = df_attack_budget[:args.n_train_attacks]
@@ -62,12 +64,20 @@ def _split_dataframe(dataset, args):
         # TODO: Normalizzare i dati (?)
         # normalize_values(xy)
         # remove_collinear_features(xy, 0.95)
+        scaler = MinMaxScaler()
+        scaler.fit(x_train_unsupervised)
+        x_train_unsupervised = scaler.transform(x_train_unsupervised)
+        # x_train_few_shot = scaler.transform(x_train_few_shot)
+        x_test = scaler.transform(x_test)
+
+        x_train_unsupervised = torch.tensor(x_train_unsupervised).float()
+        # x_train_few_shot = torch.tensor(x_train_few_shot).float()
+        x_test = torch.tensor(x_test).float()
         pass
 
     test_dataset = TensorDataset(x_test, y_test)
-    train_unsupervised_dataset = TensorDataset(x_train_unsupervised)
     train_few_shot_dataset = TensorDataset(x_train_few_shot, y_train_few_shot)
 
-    return (DataLoader(train_unsupervised_dataset, batch_size=args.batch_size, shuffle=True),
+    return (DataLoader(x_train_unsupervised, batch_size=args.batch_size, shuffle=True),
             DataLoader(train_few_shot_dataset, batch_size=args.batch_size, shuffle=True),
             DataLoader(test_dataset, batch_size=args.batch_size))
