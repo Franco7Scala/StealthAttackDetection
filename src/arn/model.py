@@ -79,9 +79,8 @@ class Generator(nn.Module):
         z, mu, logvar = self.encode(x)
         logits = self.decode(z)
 
-        # sampled_data = self.sigmoid(logits)
-        # return logits, mu, logvar, sampled_data
-        return logits, mu, logvar, logits
+        sampled_data = self.sigmoid(logits)
+        return logits, mu, logvar, sampled_data
 
 class Discriminator(nn.Module):
 
