@@ -61,19 +61,17 @@ def _split_dataframe(dataset, args):
     y_train_few_shot = torch.tensor(y_train_few_shot.to_numpy()).float()
 
     if args.apply_normalization:
-        # TODO: Normalizzare i dati (?)
         # normalize_values(xy)
         # remove_collinear_features(xy, 0.95)
         scaler = MinMaxScaler()
         scaler.fit(x_train_unsupervised)
         x_train_unsupervised = scaler.transform(x_train_unsupervised)
-        # x_train_few_shot = scaler.transform(x_train_few_shot)
+        x_train_few_shot = scaler.transform(x_train_few_shot)
         x_test = scaler.transform(x_test)
 
         x_train_unsupervised = torch.tensor(x_train_unsupervised).float()
-        # x_train_few_shot = torch.tensor(x_train_few_shot).float()
+        x_train_few_shot = torch.tensor(x_train_few_shot).float()
         x_test = torch.tensor(x_test).float()
-        pass
 
     test_dataset = TensorDataset(x_test, y_test)
     train_few_shot_dataset = TensorDataset(x_train_few_shot, y_train_few_shot)
