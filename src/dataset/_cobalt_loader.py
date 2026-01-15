@@ -27,6 +27,7 @@ class Cobailt(Dataset):
                 'ttl_values_max',
                 'ttl_values_mean',
                 'ttl_values_mode',
+                'ttl_values_median',
                 'distinct_ttl_values',
                 'dst_port'
             ]
