@@ -45,11 +45,12 @@ def train_model(model, args):
     #pr_auc = auc(rc_recall, rc_precision)
     print("Results:")
     print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc_score}")#\npr_auc: {pr_auc}")
-    print(classification_report(y_test, pred, target_names=["Benign", "SlowDoS"]))
+    print(classification_report(y_test, pred, target_names=["Benign", "Attack"]))
 
 
 if __name__ == "__main__":
-    models = [GaussianNB(), DecisionTreeClassifier(max_depth=3), KNeighborsClassifier(n_neighbors=3), RandomForestClassifier(n_estimators=80), xgb.XGBClassifier(base_score=0.5, n_estimators=80)]
+    models = [GaussianNB(), DecisionTreeClassifier(max_depth=3), KNeighborsClassifier(n_neighbors=3),
+              RandomForestClassifier(n_estimators=80), xgb.XGBClassifier(base_score=0.5, n_estimators=80)]
     args = parse_arguments()
     for model in models:
         set_reproducibility(args.seed)
