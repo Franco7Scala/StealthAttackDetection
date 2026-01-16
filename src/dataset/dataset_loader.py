@@ -42,19 +42,19 @@ def _split_dataframe(dataset, args):
     df_test = pd.concat([df_normal_test, df_attack_test]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
 
     x_test = df_test.drop(columns=["attack"])
-    x_test = torch.tensor(x_test.to_numpy())
+    x_test = torch.tensor(x_test.to_numpy()).float()
 
     y_test = df_test["attack"]
     y_test = torch.tensor(y_test.to_numpy()).float()
 
     df_train_unsupervised = df_normal_train.copy()
     x_train_unsupervised = df_train_unsupervised.drop(columns=["attack"])
-    x_train_unsupervised = torch.tensor(x_train_unsupervised.to_numpy())
+    x_train_unsupervised = torch.tensor(x_train_unsupervised.to_numpy()).float()
 
     df_train_few_shot = pd.concat([df_normal_train, df_attack_train]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
 
     x_train_few_shot = df_train_few_shot.drop(columns=["attack"])
-    x_train_few_shot = torch.tensor(x_train_few_shot.to_numpy())
+    x_train_few_shot = torch.tensor(x_train_few_shot.to_numpy()).float()
 
     y_train_few_shot = df_train_few_shot["attack"]
     y_train_few_shot = torch.tensor(y_train_few_shot.to_numpy()).float()

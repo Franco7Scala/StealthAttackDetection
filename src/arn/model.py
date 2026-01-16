@@ -82,9 +82,9 @@ class Generator(nn.Module):
 
         if self.out_activation is not None:
             sampled_data = self.out_activation(logits)
-        else:
-            sampled_data = logits.copy()
-        return logits, mu, logvar, sampled_data
+            return logits, mu, logvar, sampled_data
+        return logits, mu, logvar, logits
+
 
 class Discriminator(nn.Module):
 

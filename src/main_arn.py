@@ -12,7 +12,7 @@ from src.support.arguments import parse_arguments
 from src.support.utils import set_reproducibility
 
 
-def run(params):
+def run(params, args):
     attack_type = params['attack_type']
 
     n_runs = params['n_runs']
@@ -30,9 +30,9 @@ def run(params):
     for i in range(start_runs, n_runs):
         print(f'Iteration: {i}')
         params['seed'] = seed*(i+1)
-        x_train_unsupervised,x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(params)
+        x_train_unsupervised,x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(args)
         train_loader, _, test_loader = get_dataloaders(x_train_unsupervised, x_train_few_shot,y_train_few_shot,
-                                                                                        x_test, y_test, params)
+                                                                                        x_test, y_test, args)
 
         model = ARN(params)
 
@@ -80,7 +80,7 @@ def main():
     params['nc'] = x_train_unsupervised.shape[1]
     print(params['nc'])
 
-    run(params)
+    run(params, args)
 
 if __name__ == '__main__':
     main()
