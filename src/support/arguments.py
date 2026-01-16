@@ -12,4 +12,12 @@ def parse_arguments():
     parser.add_argument("--n-train-attacks", type=int, default=10, help="Number of attack samples to include in the few-shot training set.")
     parser.add_argument("--apply-normalization", type=bool, default=False, help="Enable data normalization.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size for the DataLoaders.")
+    parser.add_argument("--z-dim", type=int, default=16, help="Latent code dimension for ARN Generator.")
+    parser.add_argument("--nf-out", type=int, default=16, help="Number of neurons for ARN Generator.")
+    parser.add_argument("--n_runs", type=int, default=1, help="Number of experimental runs.")
+    parser.add_argument("--num_epochs", type=int, default=50, help="Number of epochs to train ARN.")
+    parser.add_argument("--lr_D", type=float, default=0.0001, help="Learning rate for ARN Discriminator.")
+    parser.add_argument("--lr_G", type=float, default=0.001, help="Learning rate for ARN Generator.")
+    parser.add_argument("--SAVE_FOLDER", type=str, default="./saved", help="Folder for saving models.")
+
     return parser.parse_args()
