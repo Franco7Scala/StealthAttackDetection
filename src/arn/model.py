@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 
 class Generator(nn.Module):
-    def __init__(self, nf_in = 121, nf_out = 32, z_dim = 16):
+    def __init__(self, nf_in = 121, nf_out = 32, z_dim = 16, out_activation = nn.ReLU()):
         super(Generator, self).__init__()
 
         self.nf_in = nf_in
         self.nf_out = nf_out
         self.z_dim = z_dim
+        self.out_activation = out_activation
 
         self.encoder = nn.Sequential(
             nn.Linear(self.nf_in, self.nf_out * 2),
@@ -79,8 +80,10 @@ class Generator(nn.Module):
         z, mu, logvar = self.encode(x)
         logits = self.decode(z)
 
-        # sampled_data = self.sigmoid(logits)
-        sampled_data = self.relu(logits)
+        if self.out_activation is not None:
+            sampled_data = self.out_activation(logits)
+        else:
+            sampled_data = logits.copy()
         return logits, mu, logvar, sampled_data
 
 class Discriminator(nn.Module):
@@ -92,7 +95,7 @@ class Discriminator(nn.Module):
         self.nc_out = nc_out
         self.nout = nout
 
-        self.main = nn.Sequential(
+        self.feature_extractor = nn.Sequential(
             # features extractor
             nn.Linear(self.nc, self.nout),
             nn.BatchNorm1d(self.nout, track_running_stats = False),
@@ -104,8 +107,9 @@ class Discriminator(nn.Module):
 
             nn.Linear(self.nout * 2, self.nout * 4),
             nn.BatchNorm1d(self.nout * 4, track_running_stats = False),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2),)
 
+        self.fc1 = nn.Sequential(
             # classifier
             nn.Linear(self.nout * 4, self.nout),
             nn.BatchNorm1d(self.nout, track_running_stats = False),
@@ -121,8 +125,10 @@ class Discriminator(nn.Module):
 
             nn.Dropout(0.2),
             nn.Linear(self.nc_out * 2, self.nc_out),
-            nn.ReLU(),
+            nn.ReLU()
+        )
 
+        self.fc2 = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(self.nc_out, 1),
             nn.Sigmoid()
@@ -141,5 +147,12 @@ class Discriminator(nn.Module):
 
 
     def forward(self, x):
-        x = self.main(x)
+        x = self.feature_extractor(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
         return x.flatten()
+
+    def encode(self, x):
+        x = self.feature_extractor(x)
+        x = self.fc1(x)
+        return x

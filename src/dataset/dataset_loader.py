@@ -73,6 +73,9 @@ def _split_dataframe(dataset, args):
         x_train_few_shot = torch.tensor(x_train_few_shot).float()
         x_test = torch.tensor(x_test).float()
 
+    return x_train_unsupervised, x_train_few_shot, y_train_few_shot, x_test, y_test
+
+def get_dataloaders(x_train_unsupervised, x_train_few_shot, y_train_few_shot, x_test, y_test, args):
     test_dataset = TensorDataset(x_test, y_test)
     train_few_shot_dataset = TensorDataset(x_train_few_shot, y_train_few_shot)
 

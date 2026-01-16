@@ -17,19 +17,20 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from src.support import utils
-from src.support.utils import get_base_dir
+from src.support.utils import set_reproducibility
+from src.dataset.dataset_loader import load_dataset
+from src.support.arguments import parse_arguments
 
 
-def train_model(model):
+def train_model(model, args):
     print("Loading dataset...")
-    x_test = pickle.load(open(f'{get_base_dir()}/pickles/x_test_slowdos.pkl', 'rb'))
-    y_test = pickle.load(open(f'{get_base_dir()}/pickles/y_test_slowdos.pkl', 'rb'))
-    x_train = pickle.load(open(f'{get_base_dir()}/pickles/x_train_slowdos.pkl', 'rb'))
-    y_train = pickle.load(open(f'{get_base_dir()}/pickles/y_train_slowdos.pkl', 'rb'))
+
+    _, x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(args)
+
     model_name = type(model).__name__
     print(f"Training {model_name} model...")
     start = time.time()
-    model.fit(x_train, y_train if model_name == "XGBClassifier" else y_train.ravel())
+    model.fit(x_train_few_shot, y_train_few_shot if model_name == "XGBClassifier" else y_train_few_shot.ravel())
     end = time.time()
     print(f"Training finished in: {end - start:.2f} seconds!")
     print(f"Evaluating model...")
@@ -49,9 +50,10 @@ def train_model(model):
 
 if __name__ == "__main__":
     models = [GaussianNB(), DecisionTreeClassifier(max_depth=3), KNeighborsClassifier(n_neighbors=3), RandomForestClassifier(n_estimators=80), xgb.XGBClassifier(base_score=0.5, n_estimators=80)]
+    args = parse_arguments()
     for model in models:
-        utils.seed_everything(1)
-        train_model(model)
+        set_reproducibility(args.seed)
+        train_model(model, args)
         print("-" * 100)
 
     print("All models trained and evaluated!")

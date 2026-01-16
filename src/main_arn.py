@@ -4,10 +4,13 @@ import sys
 import numpy as np
 import torch
 
-from src.dataset.dataset_loader import load_dataset
+from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.arn.trainer import ARN
 
 from src.arn.utils import load_arn_models, get_auc, get_auprc, predict
+from src.support.arguments import parse_arguments
+from src.support.utils import set_reproducibility
+
 
 def run(params):
     attack_type = params['attack_type']
@@ -27,7 +30,9 @@ def run(params):
     for i in range(start_runs, n_runs):
         print(f'Iteration: {i}')
         params['seed'] = seed*(i+1)
-        train_loader, _, test_loader = load_dataset(params)
+        x_train_unsupervised,x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(params)
+        train_loader, _, test_loader = get_dataloaders(x_train_unsupervised, x_train_few_shot,y_train_few_shot,
+                                                                                        x_test, y_test, params)
 
         model = ARN(params)
 
@@ -53,15 +58,12 @@ def run(params):
         auprc_list.append(auprc_score)
     print('AUC', auc_list, 'AUPRC', auprc_list)
 
-def main(fname):
-    with open(fname) as fp:
-        params = json.load(fp)
+def main():
+    args = parse_arguments()
 
-    np.random.seed(params['seed'])
-    torch.manual_seed(params['seed'])
-    torch.cuda.manual_seed(params['seed'])
-    torch.use_deterministic_algorithms = True
-    torch.backends.cudnn.benchmark = False
+    params = vars(args)
+    seed = params['seed']
+    set_reproducibility(seed)
 
     device = torch.device('cuda' if (torch.cuda.is_available()) else 'cpu')
     print(f'Device: {device}')
@@ -72,14 +74,14 @@ def main(fname):
     params['device'] = device
     params['seed'] = 42
 
-    train_loader, _, _ = load_dataset(params)
+    x_train_unsupervised, _, _, _, _ = load_dataset(args)
 
     params['show'] = False
-    params['nc'] = train_loader.dataset.shape[1]
+    params['nc'] = x_train_unsupervised.shape[1]
     print(params['nc'])
 
     run(params)
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main()
 
