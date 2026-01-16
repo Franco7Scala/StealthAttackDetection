@@ -164,7 +164,6 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
 # -----train and test-----#
 
-# da: PlayItStraiht di Francesco Scala
 class AverageMeter(object):
     def __init__(self, name, fmt=':f'):
         self.name = name

@@ -26,6 +26,10 @@ def train_model(model, args):
     print("Loading dataset...")
 
     _, x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(args)
+    x_train_few_shot = x_train_few_shot.numpy()
+    y_train_few_shot = y_train_few_shot.numpy()
+    x_test = x_test.numpy()
+    y_test = y_test.numpy()
 
     model_name = type(model).__name__
     print(f"Training {model_name} model...")

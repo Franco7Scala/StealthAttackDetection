@@ -11,7 +11,6 @@ from src.dataset._cobalt_loader import load_cobalt_dataset
 
 def load_dataset(args):
     attack_type = args.attack_type
-    device = args.device
 
     if attack_type.lower() == "slowdos":
         dataframe = load_slowdos_dataframe()

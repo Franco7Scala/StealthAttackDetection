@@ -19,5 +19,9 @@ def parse_arguments():
     parser.add_argument("--lr_D", type=float, default=0.0001, help="Learning rate for ARN Discriminator.")
     parser.add_argument("--lr_G", type=float, default=0.001, help="Learning rate for ARN Generator.")
     parser.add_argument("--SAVE_FOLDER", type=str, default="./saved", help="Folder for saving models.")
+    parser.add_argument("--nout", type=int, default=128, help="Number of neurons of the feature extractor for ARN Discriminator.")
+    parser.add_argument("--nc_out", type=int, default=16,
+                        help="Number of neurons of the classifier for ARN Discriminator.")
+    parser.add_argument("--n_epochs_cpvae", type=int, default=16, help="Number of epochs to train CPVAE Model.")
 
     return parser.parse_args()

@@ -19,8 +19,10 @@ class ARN(nn.Module):
         self.nc = self.params['nc']
         self.nf_out = self.params['nf_out']
         self.z_dim = self.params['z_dim']
+        self.nout = self.params['nout']
+        self.nc_out = self.params['nc_out']
 
-        self.D = Discriminator(nc = self.nc).to(self.device)
+        self.D = Discriminator(nc = self.nc, nc_out=self.nc_out, nout=self.nout).to(self.device)
 
         if params['apply_normalization']:
             self.G = Generator(nf_in = self.nc, nf_out = self.nf_out,
