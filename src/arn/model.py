@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class Generator(nn.Module):
-    def __init__(self, nf_in = 121, nf_out = 32, z_dim = 16, out_activation = nn.ReLU()):
+    def __init__(self, nf_in = 121, nf_out = 32, z_dim = 16, out_activation = None):
         super(Generator, self).__init__()
 
         self.nf_in = nf_in

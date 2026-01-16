@@ -19,7 +19,11 @@ class ARN(nn.Module):
         self.nc = self.params['nc']
 
         self.D = Discriminator(nc = self.nc).to(self.device)
-        self.G = Generator(nf_in = self.nc).to(self.device)
+
+        if params['apply_normalization']:
+            self.G = Generator(nf_in = self.nc, out_activation=nn.ReLU).to(self.device)
+        else:
+            self.G = Generator(nf_in=self.nc).to(self.device)
 
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), lr=self.params['lr_D'])
         self.g_optimizer = torch.optim.Adam(self.G.parameters(), lr=self.params['lr_G'])
