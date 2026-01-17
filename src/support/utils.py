@@ -4,7 +4,7 @@ import numpy as np
 
 
 def get_base_dir():
-    return "/home/jovyan/projects/StealthAttackDetection"
+    return "/home/jovyan/StealthAttackDetection"
 
 
 def set_reproducibility(seed):
@@ -14,3 +14,9 @@ def set_reproducibility(seed):
     torch.cuda.manual_seed(seed)
     torch.use_deterministic_algorithms = True
     torch.backends.cudnn.benchmark = False
+
+
+def compute_scale_pos_weight(y_train_np):
+    n_pos = (y_train_np == 1).sum()
+    n_neg = (y_train_np == 0).sum()
+    return n_neg / n_pos

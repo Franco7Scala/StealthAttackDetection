@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import TensorDataset, DataLoader
 from src.dataset._slowdos_loader import load_slowdos_dataframe
 from src.dataset._covert_loader import load_covert_dataframe
-from src.dataset._cobalt_loader import load_cobalt_dataset
+from src.dataset._cobalt_loader import load_cobalt_dataframe
 
 
 def load_dataset(args):
@@ -19,7 +19,7 @@ def load_dataset(args):
         dataframe = load_covert_dataframe()
 
     elif attack_type.lower() == "cobalt":
-        dataframe = load_cobalt_dataset()
+        dataframe = load_cobalt_dataframe()
 
     else:
         raise Exception(f"Unknown dataset for attack type '{attack_type}'!")
