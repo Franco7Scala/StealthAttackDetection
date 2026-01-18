@@ -43,11 +43,11 @@ def main():
       VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out,
                            z_dim=args.z_dim, out_activation=nn.ReLU).to(device)
     else:
-        VAE_model = Generator(nf_in=args.nc, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
+        VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
 
     VAE_model.load_state_dict(torch.load(path_VAE_model))
 
-    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nout), output_size, device,
+    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     # CPVAE_criterion = nn.BCELoss()
@@ -79,5 +79,5 @@ def main():
     print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc}")
     print(cr)
 
-
-
+if __name__ == '__main__':
+    main()

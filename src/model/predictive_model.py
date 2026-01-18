@@ -35,11 +35,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
             x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
         x1 = self.model1.encode(x) #ff network
-        x3 = self.model3.encode(x) #VAE network
+        _, x3, _ = self.model3.encode(x) #VAE network
         x = torch.cat((x1, x3), dim=1)
         #x = x1 #
         logits = self.fully_connected_1(x)
-        return logits
+        return logits.flatten()
 
 # -----train and test-----#
     def _train_epoch(self, train_loader, optimizer, criterion):
@@ -58,12 +58,13 @@ class ConcatenatedPredictiveVAE(nn.Module):
         loss_sum = 0
         count = 0
 
-        for i, content in enumerate(train_loader):
+        for i, (x, y) in enumerate(train_loader):
             optimizer.zero_grad()
-            target = content[1].to(self.device).view(-1).long()
-            input = content[0].to(self.device)
-            output = self(input)
-            loss = criterion(output, target)
+            x = x.to(self.device)
+            y = y.to(self.device)
+
+            logits = self(x)
+            loss = criterion(logits, y)
             loss.backward()
             #torch.nn.utils.clip_grad_norm_(self.parameters(), 0.5)
             optimizer.step()
@@ -82,34 +83,38 @@ class ConcatenatedPredictiveVAE(nn.Module):
         f1_am = AverageMeter('F1', ':6.2f')
         all_preds = []
         all_targets = []
+        all_pred_probs = []
         self.eval()
         self.no_grad = True
         output_probs = []
-        for i, (input, target) in enumerate(loader):
-            input = input.to(self.device)
-            target = target.to(self.device).view(-1).long()
+        for i, (x, y) in enumerate(loader):
+            x = x.to(self.device)
+            y = y.to(self.device).view(-1)
+
             with torch.no_grad():
-                output = self(input)
-                loss = torch.sqrt(criterion(output, target))
+                logits = self(x)
+                loss = criterion(logits, y)
 
-            _, predicted = torch.max(output.data, 1)
-            accuracy = accuracy_score(predicted.data.cpu(), target.data.cpu())
-            accuracy_am.update(accuracy, input.size(0))
-            all_preds.extend(predicted.cpu().numpy())
-            all_targets.extend(target.cpu().numpy())
+            y_pred_prob = torch.sigmoid(logits)
+            y_pred = (y_pred_prob > 0.5) + 0.
+            accuracy = accuracy_score(y.cpu(), y_pred.cpu())
+            accuracy_am.update(accuracy, x.size(0))
+            all_preds.extend(y_pred.cpu().numpy())
+            all_targets.extend(y.cpu().numpy())
+            all_pred_probs.extend(y_pred_prob.cpu().numpy())
 
-            tp_output_probs = torch.nn.functional.softmax(output.data, 1).detach().cpu().numpy()
-            tp_ground_truth = target.data.cpu().numpy()
-            tp_concatenated = numpy.concatenate((tp_output_probs, tp_ground_truth.reshape(-1, 1)), axis=1)
+            tp_output_probs = y_pred_prob.detach().cpu().numpy()
+            tp_ground_truth = y.cpu().numpy()
+            tp_concatenated = numpy.concatenate((tp_output_probs, tp_ground_truth))
             output_probs.extend(tp_concatenated.tolist())
 
         precision = precision_score(all_targets, all_preds, average="weighted", zero_division=0)
         recall = recall_score(all_targets, all_preds, average="weighted", zero_division=0)
         f1 = f1_score(all_targets, all_preds, average="weighted", zero_division=0)
-        auc_ = roc_auc_score(y_true=all_targets, y_score=all_preds)
-        cr = classification_report(all_targets, all_preds, target_names=["Benign", "SlowDoS"])
+        auc_ = roc_auc_score(y_true=all_targets, y_score=all_pred_probs)
+        cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
 
-        rc_precision, rc_recall, rc_thresholds = precision_recall_curve(all_targets, numpy.array(output_probs)[:, 1])
+        rc_precision, rc_recall, rc_thresholds = precision_recall_curve(all_targets, all_pred_probs)
         pr_auc = auc(rc_recall, rc_precision)
 
         #---------------------------------------
@@ -128,6 +133,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         self.no_grad = False
 
+        ### CHECK!!!!
         string_csv = ""
         for line in output_probs:
             string_csv += ";".join([str(x) for x in line]) + "\n"
