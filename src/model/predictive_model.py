@@ -1,11 +1,11 @@
 import torch
-import numpy
+import numpy as np
 import torch.nn as nn
-
+import os
 from typing import Optional
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc,roc_curve
 from torch.utils.data import DataLoader
 
 from src.support.utils import get_base_dir
@@ -13,8 +13,9 @@ from src.support.utils import get_base_dir
 
 class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device, random_noise=False, mean=0., std=1.):
+    def __init__(self, model1, model3, input_size, output_size, device,params, random_noise=False, mean=0., std=1.):
         super(ConcatenatedPredictiveVAE, self).__init__()
+        self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
@@ -29,6 +30,16 @@ class ConcatenatedPredictiveVAE(nn.Module):
             nn.Linear(64, output_size),
         )
         self.to(self.device)
+        self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
+        self.save_folder = self.params['SAVE_FOLDER'] 
+        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}')
+        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}')
+        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}')
+        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}')
+        os.makedirs(self.loss_dir, exist_ok=True)
+        os.makedirs(self.auc_dir, exist_ok=True)
+        os.makedirs(self.prc_dir, exist_ok=True)
+        os.makedirs(self.probs_csv_dir, exist_ok=True)
 
     def forward(self, x):
         if self.random_noise:
@@ -105,7 +116,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
             tp_output_probs = y_pred_prob.detach().cpu().numpy()
             tp_ground_truth = y.cpu().numpy()
-            tp_concatenated = numpy.concatenate((tp_output_probs, tp_ground_truth))
+            tp_concatenated = np.concatenate((tp_output_probs, tp_ground_truth))
             output_probs.extend(tp_concatenated.tolist())
 
         precision = precision_score(all_targets, all_preds, average="weighted", zero_division=0)
@@ -115,6 +126,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
 
         rc_precision, rc_recall, rc_thresholds = precision_recall_curve(all_targets, all_pred_probs)
+        fpr, tpr, _ = roc_curve(all_targets, all_pred_probs)
         pr_auc = auc(rc_recall, rc_precision)
 
         #---------------------------------------
@@ -123,7 +135,18 @@ class ConcatenatedPredictiveVAE(nn.Module):
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.title('Precision-Recall curve')
-        plt.savefig(f"{get_base_dir()}/pr_auc.jpg")
+        plt.savefig(os.path.join(self.prc_dir, f'pr_curve_{evaluation_on}.png'))
+
+        #Step 8: Plot the ROC-AUC-CURVE
+        plt.figure(figsize=(8,6))
+        plt.plot(fpr, tpr)
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curve')
+        plt.grid(True)
+        plt.savefig(os.path.join(self.auc_dir, f'roc_curve_{evaluation_on}.png'))
+        plt.close()
+        
         #plt.show()
         # ---------------------------------------
 
@@ -133,13 +156,22 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         self.no_grad = False
 
-        ### CHECK!!!!
-        string_csv = ""
-        for line in output_probs:
-            string_csv += ";".join([str(x) for x in line]) + "\n"
 
-        with open(f"{get_base_dir()}/output_probs_{evaluation_on}.csv", "w") as f:
-            f.write(string_csv)
+        #string_csv = "\n".join([str(x) for x in output_probs])
+
+        #with open(f"{get_base_dir()}/output_probs_{evaluation_on}.csv", "w") as f:
+          #  f.write(string_csv)
+
+        
+        # Creiamo un array con le colonne: y_true, y_pred_prob
+        output_array = np.column_stack((all_targets, all_pred_probs))
+        
+        # Salviamo il CSV
+        csv_path = os.path.join(self.probs_csv_dir, f'output_{evaluation_on}.csv')
+        np.savetxt(csv_path, output_array, delimiter=',', header='y_true,y_pred_prob', comments='')
+        
+        print(f"[INFO] Saved predictions and labels to {csv_path}")
+
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc
 
@@ -156,7 +188,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         if test_loader is not None:
             print("Final results:")
             print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}")
-        #self.plotLoss(train_losses_per_epoch)
+        self.plotLoss(train_losses_per_epoch)
 
     def plotLoss(self, loss):
         plt.figure(figsize=(10, 6))
@@ -166,7 +198,10 @@ class ConcatenatedPredictiveVAE(nn.Module):
         plt.title('Training Loss over Epochs')
         plt.legend()
         plt.grid(True)
-        #plt.show()
+        plt.savefig(os.path.join(self.loss_dir, f'loss_model_training.png'))
+        plt.show()
+        plt.close()
+        
 
 # -----train and test-----#
 

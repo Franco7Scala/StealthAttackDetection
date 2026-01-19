@@ -3,13 +3,15 @@ import os
 import sys
 import numpy as np
 import torch
-
+from sklearn.metrics import roc_curve, precision_recall_curve
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.arn.trainer import ARN
 
 from src.arn.utils import load_arn_models, get_auc, get_auprc, predict
 from src.support.arguments import parse_arguments
 from src.support.utils import set_reproducibility
+from src.arn.plotter import plot_ARN_loss, plot_pr_curve, plot_auc_curve
+
 
 
 
@@ -17,7 +19,8 @@ def run(params, args):
     attack_type = params['attack_type']
 
     n_runs = params['n_runs']
-
+    auc_dir = os.path.join(params['SAVE_FOLDER'], 'auc_arn', f'auc_arn_{attack_type}')
+    prc_dir = os.path.join(params['SAVE_FOLDER'], 'prc_arn', f'prc_arn_{attack_type}')
     if 'start_runs'  in params:
         start_runs = params['start_runs']
     else:
@@ -52,12 +55,15 @@ def run(params, args):
         load_arn_models(model.G, model.D, path_G, path_D)
         y_true, y_pred = predict(model.D, params['device'], test_loader)
 
-        auc_score = get_auc(y_true, y_pred)
-        auprc_score = get_auprc(y_true, y_pred)
+        auc_score = get_auc(y_true, y_pred,auc_dir)
+        auprc_score = get_auprc(y_true, y_pred,prc_dir)
 
         auc_list.append(auc_score)
         auprc_list.append(auprc_score)
+     
+
     print('AUC', auc_list, 'AUPRC', auprc_list)
+    
 
 def main():
     args = parse_arguments()
@@ -71,6 +77,9 @@ def main():
 
     os.makedirs(params['SAVE_FOLDER'], exist_ok=True)
     os.makedirs(os.path.join(params['SAVE_FOLDER'], 'models'), exist_ok=True)
+    
+
+
 
     params['device'] = device
     params['seed'] = 42

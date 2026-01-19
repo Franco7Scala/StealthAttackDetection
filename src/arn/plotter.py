@@ -1,12 +1,15 @@
 import matplotlib
 import matplotlib.pyplot as plt
-
+import os
 matplotlib.rc('xtick', labelsize=18)
 matplotlib.rc('ytick', labelsize=18)
 matplotlib.rc('legend', fontsize=18)
 
 
-def plot_ARN_loss(d_losses, g_losses, bce_losses, rec_losses, kldes, real_scores, fake_scores):
+def plot_ARN_loss(d_losses, g_losses, bce_losses, rec_losses, kldes, real_scores, fake_scores,save_dir):
+
+    os.makedirs(save_dir, exist_ok=True)
+    
     num_epochs = len(d_losses)
 
     plt.figure(figsize=(15, 10))
@@ -14,7 +17,10 @@ def plot_ARN_loss(d_losses, g_losses, bce_losses, rec_losses, kldes, real_scores
     plt.plot(range(1, num_epochs + 1), d_losses[:num_epochs], label=r'$\mathcal{L}_{D}$')
     plt.plot(range(1, num_epochs + 1), g_losses[:num_epochs], label=r'$\mathcal{L}_{G}$')
     plt.legend()
+ 
+    plt.savefig(os.path.join(save_dir, 'loss_D_G.png'))
     plt.show()
+    plt.close()
 
     plt.figure(figsize=(15, 10))
     plt.xlim(0, num_epochs + 1)
@@ -25,7 +31,10 @@ def plot_ARN_loss(d_losses, g_losses, bce_losses, rec_losses, kldes, real_scores
     plt.plot(range(1, num_epochs + 1), kldes[:num_epochs], 'red', label=r'$\mathbb{KLD}$')
     # plt.yscale('log')
     plt.legend()
+    
+    plt.savefig(os.path.join(save_dir, 'loss_components.png'))
     plt.show()
+    plt.close()
 
     plt.figure(figsize=(15, 10))
     plt.xlim(0, num_epochs + 1)
@@ -34,20 +43,32 @@ def plot_ARN_loss(d_losses, g_losses, bce_losses, rec_losses, kldes, real_scores
     plt.plot(range(1, num_epochs + 1), fake_scores[:num_epochs],
              label=r'$\mathbb{E}_{\tilde{x}}\left[p_{\theta} (0|\tilde{x})\right]$')
     plt.legend()
+    
+    plt.savefig(os.path.join(save_dir, 'scores.png'))
     plt.show()
+    plt.close()
 
 
-def plot_pr_curve(precision, recall):
+def plot_pr_curve(precision, recall,save_dir):
+    os.makedirs(save_dir, exist_ok=True)
     plt.figure()
     plt.plot(recall, precision, marker='.')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
+    plt.savefig(os.path.join(save_dir, 'pr_curve.png'))
     plt.show()
+    
+    plt.close()
 
 
-def plot_auc_curve(fpr, tpr):
+def plot_auc_curve(fpr, tpr,save_dir):
+    os.makedirs(save_dir, exist_ok=True)
     plt.figure()
     plt.plot(fpr, tpr)
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
+    plt.savefig(os.path.join(save_dir, 'auc_curve.png'))
     plt.show()
+    
+    plt.close()
+

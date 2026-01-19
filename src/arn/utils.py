@@ -60,22 +60,22 @@ def load_arn_models(G, D, path_G, path_D):
     if os.path.exists(path_D):
         D.load_state_dict(torch.load(path_D))
 
-def get_auprc(y_test, y_pred, show_pr_curve = True):
+def get_auprc(y_test, y_pred,save_dir, show_pr_curve = True):
     precision, recall, _ = precision_recall_curve(y_test, y_pred)
     auprc_score = auc(recall, precision)
     print(f'AUPRC: {auprc_score:.2f}')
 
     if show_pr_curve:
-        plot_pr_curve(precision, recall)
+        plot_pr_curve(precision, recall,save_dir)
     return auprc_score
 
-def get_auc(y_test, y_pred, show_auc_curve = True):
+def get_auc(y_test, y_pred,save_dir, show_auc_curve = True):
     auc_score = roc_auc_score(y_test, y_pred)
     print(f'AUC: {auc_score:.2f}')
 
     if show_auc_curve:
         fpr, tpr, _ = roc_curve(y_test, y_pred)
-        plot_auc_curve(fpr, tpr)
+        plot_auc_curve(fpr, tpr,save_dir)
 
     return auc_score
 

@@ -47,13 +47,13 @@ def main():
 
     VAE_model.load_state_dict(torch.load(path_VAE_model))
 
-    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,
+    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     # CPVAE_criterion = nn.BCELoss()
     CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
 
-    print("Starting SlowDoS ConcatenatedPredictiveVAE model training...")
+    print(f"Starting {attack_type} ConcatenatedPredictiveVAE model training...")
     start = time.time()
     # -----CPVAE model training-----#
     CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader)

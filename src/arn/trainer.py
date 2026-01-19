@@ -4,7 +4,7 @@ import numpy as np
 
 from time import time
 import sys
-
+import os
 from src.arn.model import Discriminator, Generator
 from src.arn.loss import DiscriminatorLoss, GeneratorLoss
 from src.arn.plotter import plot_ARN_loss
@@ -23,6 +23,18 @@ class ARN(nn.Module):
         self.nc_out = self.params['nc_out']
 
         self.D = Discriminator(nc = self.nc, nc_out=self.nc_out, nout=self.nout).to(self.device)
+        self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
+        self.result_dir = self.params['SAVE_FOLDER']        # es. './saved'
+        
+        # Creo le cartelle per i plot specifici
+        self.loss_dir = os.path.join(self.result_dir, 'loss_arn', f'loss_arn_{self.attack_type}')
+        self.prc_dir  = os.path.join(self.result_dir, 'prc_arn',  f'prc_arn_{self.attack_type}')
+        self.auc_dir  = os.path.join(self.result_dir, 'auc_arn',  f'auc_arn_{self.attack_type}')
+        
+        os.makedirs(self.loss_dir, exist_ok=True)
+        os.makedirs(self.prc_dir, exist_ok=True)
+        os.makedirs(self.auc_dir, exist_ok=True)
+
 
         if params['apply_normalization']:
             self.G = Generator(nf_in = self.nc, nf_out = self.nf_out,
@@ -140,7 +152,7 @@ class ARN(nn.Module):
         save_arn_models(self.G, self.D, path_G, path_D)
 
         if show_loss:
-            plot_ARN_loss(d_losses[:epoch], g_losses[:epoch], bce_losses[:epoch], rec_losses[:epoch], kldes[:epoch], real_scores[:epoch], fake_scores[:epoch])
+            plot_ARN_loss(d_losses[:epoch], g_losses[:epoch], bce_losses[:epoch], rec_losses[:epoch], kldes[:epoch], real_scores[:epoch],fake_scores[:epoch],save_dir=self.loss_dir)
 
         results = {'d_losses': d_losses[:epoch], 'g_losses': g_losses[:epoch], 'rec_losses':rec_losses[:epoch],
                    'bce_losses': bce_losses[:epoch], ' kldes': kldes[:epoch], 'real_scores': real_scores[:epoch],
