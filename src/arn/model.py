@@ -132,6 +132,7 @@ class Discriminator(nn.Module):
             nn.Dropout(0.2),
             nn.Linear(self.nc_out, 1),
             nn.Sigmoid()
+            #nn.Relu()
         )
 
         self.init_weights()

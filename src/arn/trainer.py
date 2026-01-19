@@ -26,7 +26,7 @@ class ARN(nn.Module):
 
         if params['apply_normalization']:
             self.G = Generator(nf_in = self.nc, nf_out = self.nf_out,
-                               z_dim = self.z_dim, out_activation=nn.ReLU).to(self.device)
+                               z_dim = self.z_dim, out_activation=nn.ReLU()).to(self.device)
         else:
             self.G = Generator(nf_in=self.nc, nf_out = self.nf_out, z_dim = self.z_dim).to(self.device)
 
