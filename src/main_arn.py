@@ -46,13 +46,19 @@ def run(params, args):
         path_G = os.path.join(params['SAVE_FOLDER'], 'models', name_G)
         path_D = os.path.join(params['SAVE_FOLDER'], 'models', name_D)
 
+        name_G = f'ARN_Generator_{attack_type}_{i}_best.ckpt'
+        name_D = f'ARN_Discriminator_{attack_type}_{i}_best.ckpt'
+
+        path_best_G = os.path.join(params['SAVE_FOLDER'], 'models', name_G)
+        path_best_D = os.path.join(params['SAVE_FOLDER'], 'models', name_D)
+
         ### Training ###
 
         _ = model.train(train_loader, path_G, path_D, batch_size=params['batch_size'],
-                        num_epochs=params['num_epochs'])
+                        num_epochs=params['num_epochs'], path_best_G=path_best_G, path_best_D=path_best_D)
 
         ### Evaluation ###
-        load_arn_models(model.G, model.D, path_G, path_D)
+        load_arn_models(model.G, model.D, path_best_G, path_best_D)
         y_true, y_pred = predict(model.D, params['device'], test_loader)
 
         auc_score = get_auc(y_true, y_pred,auc_dir)

@@ -88,7 +88,11 @@ class ARN(nn.Module):
 
 
     def train(self, data_loader, path_G, path_D, batch_size = 32, num_epochs = 10,
-              step = 10, lowerbnd=5e-15, num_q_steps = 1, num_g_steps = 1, show_loss = True):
+              step = 10, lowerbnd=5e-15, num_q_steps = 1, num_g_steps = 1, show_loss = True,
+              path_best_G="", path_best_D=""):
+
+        best_loss_D = np.inf
+        best_loss_G = np.inf
 
         d_losses = np.zeros(num_epochs)
         g_losses = np.zeros(num_epochs)
@@ -111,6 +115,10 @@ class ARN(nn.Module):
                 self.D.train()
                 self.G.train()
                 i = 0
+
+                loss_G_epoch = []
+                loss_D_epoch = []
+
                 for batch in data_loader:
 
                     step_count += 1
@@ -134,6 +142,9 @@ class ARN(nn.Module):
                     real_scores[epoch] = real_scores[epoch]*(i/(i+1.)) + real_score.mean().item()*(1./(i+1.))
                     fake_scores[epoch] = fake_scores[epoch]*(i/(i+1.)) + fake_score.mean().item()*(1./(i+1.))
 
+                    loss_G_epoch.append(g_loss.item())
+                    loss_D_epoch.append(d_loss.item())
+
                     # Anneal the temperature along with training steps
                     self.anneal_temp(lowerbnd)
 
@@ -142,6 +153,17 @@ class ARN(nn.Module):
                 sys.stdout.write("\r" + 'Epoch [{:>3}/{}] | d_loss: {:.4f} | g_loss: {:.4f} ({:.2f}, {:.2f}, {:.2f}) | D(x): {:.2f} | D(G(x)): {:.2f} '
                                  .format(epoch+1, num_epochs, d_losses[epoch], g_losses[epoch], bce_loss.item(), rec_losses[epoch], kldes[epoch], real_scores[epoch], fake_scores[epoch]))
                 sys.stdout.flush()
+
+                loss_G_epoch = np.mean(loss_G_epoch)
+                loss_D_epoch = np.mean(loss_D_epoch)
+
+                if loss_G_epoch < best_loss_G:
+                    best_loss_G = loss_G_epoch
+                    torch.save(self.G.state_dict(), path_best_G)
+
+                if loss_D_epoch < best_loss_D:
+                    best_loss_D = loss_D_epoch
+                    torch.save(self.D.state_dict(), path_best_D)
 
 
         except KeyboardInterrupt:

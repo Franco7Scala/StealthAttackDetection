@@ -30,8 +30,8 @@ def main():
     mean = 0.0
     std = 0.05
 
-    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
-    name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
+    name_VAE_model = f'ARN_Generator_{attack_type}_0_best.ckpt'
+    name_MC_model = f'ARN_Discriminator_{attack_type}_0_best.ckpt'
 
     path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
     path_MC_model = os.path.join(args.SAVE_FOLDER, 'models', name_MC_model)
