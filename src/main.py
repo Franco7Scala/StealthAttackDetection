@@ -20,6 +20,7 @@ def main():
 
     set_reproducibility(args.seed)
     attack_type = args.attack_type
+    batch_size = args.batch_size
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Running on {device}...")
@@ -50,13 +51,13 @@ def main():
     CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
-    # CPVAE_criterion = nn.BCELoss()
-    CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
+    CPVAE_criterion = nn.BCEWithLogitsLoss()
+    #CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
 
     print(f"Starting {attack_type} ConcatenatedPredictiveVAE model training...")
     start = time.time()
     # -----CPVAE model training-----#
-    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader)
+    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size)
     # -----CPVAE model training-----#
     end = time.time()
 

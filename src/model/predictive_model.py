@@ -57,10 +57,10 @@ class ConcatenatedPredictiveVAE(nn.Module):
         self.train()
 
         #-----freeze model1, model2 and model3-----#
-        self.model1.eval()
+        self.model1.train()
         self.model3.eval()
         for param in self.model1.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         for param in self.model3.parameters():
             param.requires_grad = False
@@ -86,6 +86,66 @@ class ConcatenatedPredictiveVAE(nn.Module):
         print(f"Auc: {auc_}")
 
         return loss_sum / count
+
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, n_pos=5):
+        self.train()
+    
+
+        x_all = []
+        y_all = []
+        for x, y in train_loader:
+            x_all.append(x)
+            y_all.append(y)
+        x_all = torch.cat(x_all, dim=0)
+        y_all = torch.cat(y_all, dim=0)
+    
+        # separa anomalie e normali
+        mask_pos = (y_all == 1)
+        mask_neg = (y_all == 0)
+        x_pos = x_all[mask_pos]
+        y_pos = y_all[mask_pos]
+        x_neg = x_all[mask_neg]
+        y_neg = y_all[mask_neg]
+    
+        n_neg = batch_size - n_pos
+        n_batches = len(x_neg) // n_neg
+
+        epoch_loss = 0.0
+
+        for i in range(n_batches):
+     
+            xb_pos = x_pos
+            yb_pos = y_pos
+    
+
+            idx_neg = torch.randperm(len(x_neg))[:n_neg]
+            xb_neg = x_neg[idx_neg]
+            yb_neg = y_neg[idx_neg]
+    
+            # batch completo
+            x_batch = torch.cat([xb_pos, xb_neg], dim=0).to(self.device)
+            y_batch = torch.cat([yb_pos, yb_neg], dim=0).to(self.device).float()
+    
+            # shuffle batch
+            perm = torch.randperm(len(y_batch))
+            x_batch = x_batch[perm]
+            y_batch = y_batch[perm]
+    
+            # forward/backward
+            optimizer.zero_grad()
+            logits = self(x_batch)
+            loss = criterion(logits, y_batch)
+            loss.backward()
+            optimizer.step()
+    
+            epoch_loss += loss.item()
+    
+        epoch_loss /= n_batches
+        print(f"Epoch loss: {epoch_loss:.6f}")
+        _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
+        print(f"Auc: {auc_}")
+        return epoch_loss
+
 
     def evaluate(self, loader, criterion, evaluation_on="test"):
         accuracy_am = AverageMeter('Accuracy', ':6.2f')
@@ -175,11 +235,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc
 
-    def fit(self, epochs, optimizer, criterion, train_loader, test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader,batch_size, test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_epoch(train_loader, optimizer, criterion)
+            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,n_pos=5)
             train_losses_per_epoch.append(avg_loss)
             if test_loader is not None:
                 accuracy, precision, recall, f1, auc_, cr, pr_auc = self.evaluate(test_loader, criterion)
