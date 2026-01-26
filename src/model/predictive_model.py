@@ -13,12 +13,13 @@ from src.support.utils import get_base_dir
 
 class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device,params, random_noise=False, mean=0., std=1.):
+    def __init__(self, model1, model3, input_size, output_size, device,params,random_noise=True, mean=0., std=1.):
         super(ConcatenatedPredictiveVAE, self).__init__()
         self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
+      
         self.device = device
         self.model1 = model1
         self.model3 = model3
@@ -31,11 +32,12 @@ class ConcatenatedPredictiveVAE(nn.Module):
         )
         self.to(self.device)
         self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
-        self.save_folder = self.params['SAVE_FOLDER'] 
-        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}')
-        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}')
-        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}')
-        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}')
+        self.save_folder = self.params['SAVE_FOLDER']
+        self.runs = self.params['n_runs']
+        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.runs}')
+        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.runs}')
+        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.runs}')
+        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.runs}')
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.auc_dir, exist_ok=True)
         os.makedirs(self.prc_dir, exist_ok=True)
@@ -89,6 +91,14 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, n_pos=5):
         self.train()
+        self.model1.eval()
+        self.model3.eval()
+        
+        for param in self.model1.parameters():
+            param.requires_grad = False
+
+        for param in self.model3.parameters():
+            param.requires_grad = False
     
 
         x_all = []
