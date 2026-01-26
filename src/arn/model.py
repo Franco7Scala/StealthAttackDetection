@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
+
 class Generator(nn.Module):
-    def __init__(self, nf_in = 121, nf_out = 32, z_dim = 16, out_activation = None):
+    def __init__(self, nf_in=121, nf_out=32, z_dim=16, out_activation=None):
         super(Generator, self).__init__()
 
         self.nf_in = nf_in
@@ -11,21 +12,21 @@ class Generator(nn.Module):
         self.out_activation = out_activation
 
         self.encoder = nn.Sequential(
-            nn.Linear(self.nf_in, self.nf_out * 2),
-            nn.BatchNorm1d(self.nf_out * 2, track_running_stats = False),
-            nn.LeakyReLU(0.2),
+            nn.Linear(self.nf_in, self.nf_out),
+            nn.BatchNorm1d(self.nf_out),
+            nn.ReLU(0.2),
 
-            nn.Linear(self.nf_out * 2, self.nf_out),
-            nn.BatchNorm1d(self.nf_out, track_running_stats = False),
-            nn.LeakyReLU(0.2)
+            # nn.Linear(self.nf_out * 2, self.nf_out),
+            # nn.BatchNorm1d(self.nf_out, track_running_stats = False),
+            # nn.LeakyReLU(0.2)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(self.nf_out, self.nf_out * 2),
-            nn.BatchNorm1d(self.nf_out * 2, track_running_stats = False),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(self.nf_out * 2, self.nf_in)
+            # nn.Linear(self.nf_out, self.nf_out * 2),
+            # nn.BatchNorm1d(self.nf_out * 2, track_running_stats = False),
+            # nn.ReLU(),
+            # nn.Dropout(p=0.2),
+            nn.Linear(self.nf_out, self.nf_in)
         )
 
         self.fc1 = nn.Linear(self.nf_out, self.nf_out)
@@ -38,7 +39,6 @@ class Generator(nn.Module):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-
         self.init_weights()
 
     def init_weights(self):
@@ -49,7 +49,6 @@ class Generator(nn.Module):
             elif isinstance(m, nn.BatchNorm1d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
 
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
@@ -75,7 +74,6 @@ class Generator(nn.Module):
 
         return self.decoder(deconv_input)
 
-
     def forward(self, x):
         z, mu, logvar = self.encode(x)
         logits = self.decode(z)
@@ -83,12 +81,13 @@ class Generator(nn.Module):
         if self.out_activation is not None:
             sampled_data = self.out_activation(logits)
             return logits, mu, logvar, sampled_data
+
         return logits, mu, logvar, logits
 
 
 class Discriminator(nn.Module):
 
-    def __init__(self, nc = 121, nc_out = 16, nout = 128):
+    def __init__(self, nc=121, nc_out=16, nout=128):
         super(Discriminator, self).__init__()
 
         self.nc = nc
@@ -98,41 +97,42 @@ class Discriminator(nn.Module):
         self.feature_extractor = nn.Sequential(
             # features extractor
             nn.Linear(self.nc, self.nout),
-            nn.BatchNorm1d(self.nout, track_running_stats = False),
-            nn.LeakyReLU(0.2),
+            nn.BatchNorm1d(self.nout),
+            nn.ReLU(),
 
-            nn.Linear(self.nout, self.nout * 2),
-            nn.BatchNorm1d(self.nout * 2, track_running_stats = False),
-            nn.LeakyReLU(0.2),
+            nn.Linear(self.nout, self.nout),
+            nn.BatchNorm1d(self.nout),
+            nn.ReLU(),
 
-            nn.Linear(self.nout * 2, self.nout * 4),
-            nn.BatchNorm1d(self.nout * 4, track_running_stats = False),
-            nn.LeakyReLU(0.2),)
+            # nn.Linear(self.nout * 2, self.nout * 4),
+            # nn.BatchNorm1d(self.nout * 4, track_running_stats = False),
+            # nn.LeakyReLU(0.2),
+        )
 
         self.fc1 = nn.Sequential(
             # classifier
-            nn.Linear(self.nout * 4, self.nout),
-            nn.BatchNorm1d(self.nout, track_running_stats = False),
+            nn.Linear(self.nout, self.nout),
+            nn.BatchNorm1d(self.nout),
+            nn.Dropout(0.05),
             nn.ReLU(),
 
-            nn.Linear(self.nout, self.nc_out * 4),
-            nn.BatchNorm1d(self.nc_out * 4, track_running_stats = False),
-            nn.ReLU(),
+            # nn.Linear(self.nout, self.nc_out * 4),
+            # nn.BatchNorm1d(self.nc_out * 4, track_running_stats = False),
+            # nn.ReLU(),
 
-            nn.Dropout(0.2),
-            nn.Linear(self.nc_out * 4, self.nc_out * 2),
-            nn.ReLU(),
+            # nn.Dropout(0.2),
+            # nn.Linear(self.nc_out * 2, self.nc_out * 2),
+            # nn.ReLU(),
 
-            nn.Dropout(0.2),
-            nn.Linear(self.nc_out * 2, self.nc_out),
-            nn.ReLU()
+            nn.Linear(self.nout, self.nc_out),
+            nn.BatchNorm1d(self.nc_out),
+            nn.Dropout(0.05),
+            nn.ReLU(),
         )
 
         self.fc2 = nn.Sequential(
-            nn.Dropout(0.2),
             nn.Linear(self.nc_out, 1),
             nn.Sigmoid()
-
         )
 
         self.init_weights()
@@ -145,7 +145,6 @@ class Discriminator(nn.Module):
             elif isinstance(m, nn.BatchNorm1d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
 
     def forward(self, x):
         x = self.feature_extractor(x)

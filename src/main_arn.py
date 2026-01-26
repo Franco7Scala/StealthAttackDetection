@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 import torch
-from sklearn.metrics import roc_curve, precision_recall_curve
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.arn.trainer import ARN
 
@@ -11,8 +11,6 @@ from src.arn.utils import load_arn_models, get_auc, get_auprc, predict
 from src.support.arguments import parse_arguments
 from src.support.utils import set_reproducibility
 from src.arn.plotter import plot_ARN_loss, plot_pr_curve, plot_auc_curve
-
-
 
 
 def run(params, args):
@@ -55,17 +53,57 @@ def run(params, args):
         ### Training ###
 
         _ = model.train(train_loader, path_G, path_D, batch_size=params['batch_size'],
-                        num_epochs=params['num_epochs'], path_best_G=path_best_G, path_best_D=path_best_D)
+                        num_epochs=params['num_epochs'], num_q_steps=5,
+                        path_best_G=path_best_G, path_best_D=path_best_D)
 
         ### Evaluation ###
+        print('Evaluate Best Model')
         load_arn_models(model.G, model.D, path_best_G, path_best_D)
-        y_true, y_pred = predict(model.D, params['device'], test_loader)
+        y_true, y_pred_prob = predict(model.D, params['device'], test_loader)
+
+        y_pred_prob = 1 - y_pred_prob
+        y_pred = (y_pred_prob > 0.5) + 0.
 
         auc_score = get_auc(y_true, y_pred,auc_dir)
         auprc_score = get_auprc(y_true, y_pred,prc_dir)
 
         auc_list.append(auc_score)
         auprc_list.append(auprc_score)
+
+        precision = precision_score(y_true, y_pred, average="weighted", zero_division=0)
+        recall = recall_score(y_true, y_pred, average="weighted", zero_division=0)
+        f1 = f1_score(y_true, y_pred, average="weighted", zero_division=0)
+        auc_ = roc_auc_score(y_true=y_true, y_score=y_pred_prob)
+        cr = classification_report(y_true, y_pred, target_names=["Benign", "Attack"])
+
+        rc_precision, rc_recall, rc_thresholds = precision_recall_curve(y_true, y_pred_prob)
+        pr_auc = auc(rc_recall, rc_precision)
+
+        print(f"precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}")
+        print(cr)
+
+        print('Evaluate Last Model')
+        load_arn_models(model.G, model.D, path_G, path_D)
+        y_true, y_pred_prob = predict(model.D, params['device'], test_loader)
+
+        y_pred_prob = 1 - y_pred_prob
+        y_pred = (y_pred_prob > 0.5) + 0.
+        # y_pred = 1-y_pred
+
+        auc_score = get_auc(y_true, y_pred_prob, auc_dir)
+        auprc_score = get_auprc(y_true, y_pred_prob, prc_dir)
+
+        precision = precision_score(y_true, y_pred, average="weighted", zero_division=0)
+        recall = recall_score(y_true, y_pred, average="weighted", zero_division=0)
+        f1 = f1_score(y_true, y_pred, average="weighted", zero_division=0)
+        auc_ = roc_auc_score(y_true=y_true, y_score=y_pred_prob)
+        cr = classification_report(y_true, y_pred, target_names=["Benign", "Attack"])
+
+        rc_precision, rc_recall, rc_thresholds = precision_recall_curve(y_true, y_pred_prob)
+        pr_auc = auc(rc_recall, rc_precision)
+
+        print(f"precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}")
+        print(cr)
      
 
     print('AUC', auc_list, 'AUPRC', auprc_list)

@@ -13,11 +13,11 @@ class DiscriminatorLoss(nn.Module):
     def forward(self, true_preds, fake_preds, step):
 
         bs = true_preds.size(0)
-        # y_real = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
-        # y_fake = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
+        y_real = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
+        y_fake = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
 
-        y_real = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
-        y_fake = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
+        # y_real = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
+        # y_fake = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
 
         D_real_loss = self.criterion(true_preds, y_real)
         D_fake_loss = self.criterion(fake_preds, y_fake)
@@ -42,8 +42,8 @@ class GeneratorLoss(nn.Module):
 
         bs = fake_preds.size(0)
 
-        # y_fake = torch.ones(bs).to(self.device)
-        y_fake = torch.zeros(bs).to(self.device)
+        y_fake = torch.ones(bs).to(self.device)
+        # y_fake = torch.zeros(bs).to(self.device)
         log_p_y = self.criterion(fake_preds, y_fake)
 
         rec = self.mse(true_data, sampled_data)
