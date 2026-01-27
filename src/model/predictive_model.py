@@ -91,11 +91,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, n_pos=5):
         self.train()
-        self.model1.eval()
+        self.model1.train()
         self.model3.eval()
         
         for param in self.model1.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         for param in self.model3.parameters():
             param.requires_grad = False
