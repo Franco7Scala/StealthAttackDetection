@@ -9,7 +9,7 @@ from src.arn.trainer import ARN
 
 from src.arn.utils import load_arn_models, get_auc, get_auprc, predict
 from src.support.arguments import parse_arguments
-from src.support.utils import set_reproducibility
+from src.support.utils import set_reproducibility, print_args
 from src.arn.plotter import plot_ARN_loss, plot_pr_curve, plot_auc_curve
 
 
@@ -111,6 +111,7 @@ def run(params, args):
 
 def main():
     args = parse_arguments()
+    print_args(args)
 
     params = vars(args)
     seed = params['seed']

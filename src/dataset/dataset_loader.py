@@ -1,8 +1,8 @@
 import torch
 import pandas as pd
+import numpy as np
 
 from sklearn.preprocessing import MinMaxScaler
-
 from torch.utils.data import TensorDataset, DataLoader
 from src.dataset._slowdos_loader import load_slowdos_dataframe
 from src.dataset._covert_loader import load_covert_dataframe
@@ -28,6 +28,9 @@ def load_dataset(args):
 
 
 def _split_dataframe(dataset, args):
+    dataset.replace([np.inf, -np.inf], np.nan, inplace=True)
+    dataset.fillna(dataset.mean(), inplace=True)
+
     df_normal = dataset[dataset["attack"] == 0]
     df_attack = dataset[dataset["attack"] == 1]
 

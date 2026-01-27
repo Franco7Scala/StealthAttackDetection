@@ -34,3 +34,19 @@ def str2bool(v):
 
     else:
         raise Exception("Boolean value expected.")
+
+
+def print_args(args):
+    args_dict = vars(args)
+    if not args_dict:
+        print("No arguments provided.")
+        return
+
+    max_key_len = max(len(key) for key in args_dict)
+    print("\n" + "=" * 30)
+    print(f"{'CONFIGURATION':^{30}}")
+    print("=" * 30)
+    for key, value in sorted(args_dict.items()):
+        print(f"{key:<{max_key_len}} : {value}")
+
+    print("=" * 30 + "\n")

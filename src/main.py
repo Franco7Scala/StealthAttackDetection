@@ -8,11 +8,13 @@ from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
 from src.model.predictive_model import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
-from src.support.utils import set_reproducibility
+from src.support.utils import set_reproducibility, print_args
 from src.arn.model import Generator, Discriminator
 
 def main():
     args = parse_arguments()
+    print_args(args)
+
     x_train_unsupervised, x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(args)
     _, train_few_shot_loader, test_loader = get_dataloaders(x_train_unsupervised,
                                                                                     x_train_few_shot, y_train_few_shot,
@@ -31,8 +33,8 @@ def main():
     mean = 0.0
     std = 0.05
 
-    name_VAE_model = f'ARN_Generator_{attack_type}_0_best.ckpt'
-    name_MC_model = f'ARN_Discriminator_{attack_type}_0_best.ckpt'
+    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
+    name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
     path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
     path_MC_model = os.path.join(args.SAVE_FOLDER, 'models', name_MC_model)

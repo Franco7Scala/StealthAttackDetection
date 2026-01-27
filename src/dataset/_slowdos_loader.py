@@ -39,7 +39,7 @@ def load_slowdos_dataframe() -> pandas.DataFrame:
         dataframes = remove_labels(dataframes, labels, ["DDoS", "DoS Slowhttptest", "DoS slowloris", "BENIGN"])
         dataframes = _class_string2int(dataframes, labels)
         dataframe = pandas.concat(dataframes)
-        dataframe = dataframe.drop([" Destination Port"], axis="columns")
+        dataframe = dataframe.drop([" Destination Port", " Bwd PSH Flags", " Fwd URG Flags", " Bwd URG Flags", " CWE Flag Count", " ECE Flag Count", "Fwd Avg Bytes/Bulk", " Fwd Avg Packets/Bulk", " Fwd Avg Bulk Rate", " Bwd Avg Bytes/Bulk", " Bwd Avg Packets/Bulk", " Bwd Avg Packets/Bulk", "Bwd Avg Bulk Rate", " RST Flag Count"], axis="columns")
         dataframe = dataframe.rename(columns={" Label": "attack"})
         dataframe.to_pickle(path_processed_dataset)
         return dataframe
