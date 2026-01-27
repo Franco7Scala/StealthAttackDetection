@@ -9,13 +9,13 @@ class SimpleDiscriminator(nn.Module):
 
         self.feature_extractor = nn.Sequential(
             nn.Linear(nc, hidden),
-            nn.BatchNorm1d(hidden, track_running_stats=False),
+            nn.BatchNorm1d(hidden),
             nn.Dropout(0.05),
             nn.LeakyReLU(0.2),
 
 
-            nn.Linear(hidden, hidden),
-            nn.BatchNorm1d(hidden, track_running_stats=False),
+            nn.Linear(hidden, nc_out),
+            nn.BatchNorm1d(nc_out),
             nn.Dropout(0.05),
             nn.LeakyReLU(0.2),
 
