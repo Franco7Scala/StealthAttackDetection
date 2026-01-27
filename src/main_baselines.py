@@ -47,10 +47,10 @@ def train_model(model, args):
     pred_prob = model.predict_proba(x_test)
     recalls_per_class = recall_score(y_test, pred, average=None)
     gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
-    #rc_precision, rc_recall, rc_thresholds = precision_recall_curve(y_test, pred_prob[:, 1])
-    #pr_auc = auc(rc_recall, rc_precision)
+    rc_precision, rc_recall, rc_thresholds = precision_recall_curve(y_test, pred_prob[:, 1])
+    pr_auc = auc(rc_recall, rc_precision)
     print("Results:")
-    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc_score}\ngmean_macro: {gmean_macro}")#\npr_auc: {pr_auc}")
+    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc_score}\ngmean_macro: {gmean_macro}\npr_auc: {pr_auc}")
     print(classification_report(y_test, pred, target_names=["Benign", "Attack"]))
 
 

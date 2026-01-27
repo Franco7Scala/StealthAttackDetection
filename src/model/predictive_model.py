@@ -33,11 +33,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
         self.to(self.device)
         self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
         self.save_folder = self.params['SAVE_FOLDER']
-        self.runs = self.params['n_runs']
-        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.runs}')
-        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.runs}')
-        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.runs}')
-        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.runs}')
+        self.n_exps = self.params['n_exps']
+        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.n_exps}')
+        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.n_exps}')
+        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.n_exps}')
+        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.n_exps}')
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.auc_dir, exist_ok=True)
         os.makedirs(self.prc_dir, exist_ok=True)
