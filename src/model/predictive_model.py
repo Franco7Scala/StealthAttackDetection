@@ -152,7 +152,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
-        _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
+        _, _, _, _, auc_, _, _, _ = self.evaluate(train_loader, criterion)
         print(f"Auc: {auc_}")
         return epoch_loss
 
