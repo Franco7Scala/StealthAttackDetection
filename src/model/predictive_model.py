@@ -199,6 +199,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
         fpr, tpr, _ = roc_curve(all_targets, all_pred_probs)
         pr_auc = auc(rc_recall, rc_precision)
 
+        recalls_per_class = recall_score(all_targets, all_preds, average=None)
+        gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
+
         #---------------------------------------
         # Step 7: Plot the Precision-Recall curve.
         plt.plot(rc_recall, rc_precision, marker='.', label='Logistic')
@@ -243,7 +246,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         print(f"[INFO] Saved predictions and labels to {csv_path}")
 
 
-        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc
+        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro
 
     def fit(self, epochs, optimizer, criterion, train_loader,batch_size, test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
@@ -252,12 +255,12 @@ class ConcatenatedPredictiveVAE(nn.Module):
             avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,n_pos=5)
             train_losses_per_epoch.append(avg_loss)
             if test_loader is not None:
-                accuracy, precision, recall, f1, auc_, cr, pr_auc = self.evaluate(test_loader, criterion)
+                accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro = self.evaluate(test_loader, criterion)
 
         print("Finished training CPVAE!")
         if test_loader is not None:
             print("Final results:")
-            print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}")
+            print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}")
         self.plotLoss(train_losses_per_epoch)
 
     def plotLoss(self, loss):
