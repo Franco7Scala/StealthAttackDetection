@@ -5,7 +5,7 @@ import os
 from typing import Optional
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc,roc_curve
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc,roc_curve,confusion_matrix
 from torch.utils.data import DataLoader
 
 from src.support.utils import get_base_dir
@@ -112,29 +112,30 @@ class ConcatenatedPredictiveVAE(nn.Module):
         # separa anomalie e normali
         mask_pos = (y_all == 1)
         mask_neg = (y_all == 0)
-        x_pos = x_all[mask_pos]
-        y_pos = y_all[mask_pos]
-        x_neg = x_all[mask_neg]
-        y_neg = y_all[mask_neg]
+        x_pos = x_all[mask_pos].to(self.device)
+        y_pos = y_all[mask_pos].to(self.device)
+        x_neg = x_all[mask_neg].to(self.device)
+        y_neg = y_all[mask_neg].to(self.device)
     
         n_neg = batch_size - n_pos
         n_batches = len(x_neg) // n_neg
 
         epoch_loss = 0.0
 
-        for i in range(n_batches):
+        for i in tqdm(range(n_batches)):
      
             xb_pos = x_pos
             yb_pos = y_pos
     
 
-            idx_neg = torch.randperm(len(x_neg))[:n_neg]
+            #idx_neg = torch.randperm(len(x_neg))[:n_neg]
+            idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
             xb_neg = x_neg[idx_neg]
             yb_neg = y_neg[idx_neg]
     
             # batch completo
-            x_batch = torch.cat([xb_pos, xb_neg], dim=0).to(self.device)
-            y_batch = torch.cat([yb_pos, yb_neg], dim=0).to(self.device).float()
+            x_batch = torch.cat([xb_pos, xb_neg], dim=0)
+            y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
     
             # shuffle batch
             perm = torch.randperm(len(y_batch))
@@ -152,7 +153,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
-        _, _, _, _, auc_, _, _, _ = self.evaluate(train_loader, criterion)
+        _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
         print(f"Auc: {auc_}")
         return epoch_loss
 
@@ -194,6 +195,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
         f1 = f1_score(all_targets, all_preds, average="weighted", zero_division=0)
         auc_ = roc_auc_score(y_true=all_targets, y_score=all_pred_probs)
         cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
+        cm = confusion_matrix(all_targets,all_preds)
+        tn, fp, fn, tp = cm.ravel()
+        far = fp / (fp + tn)
 
         rc_precision, rc_recall, rc_thresholds = precision_recall_curve(all_targets, all_pred_probs)
         fpr, tpr, _ = roc_curve(all_targets, all_pred_probs)
@@ -246,7 +250,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         print(f"[INFO] Saved predictions and labels to {csv_path}")
 
 
-        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro
+        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
     def fit(self, epochs, optimizer, criterion, train_loader,batch_size, test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
@@ -255,12 +259,12 @@ class ConcatenatedPredictiveVAE(nn.Module):
             avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,n_pos=5)
             train_losses_per_epoch.append(avg_loss)
             if test_loader is not None:
-                accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro = self.evaluate(test_loader, criterion)
+                accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro,cm,far = self.evaluate(test_loader, criterion)
 
         print("Finished training CPVAE!")
         if test_loader is not None:
             print("Final results:")
-            print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}")
+            print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
 
     def plotLoss(self, loss):

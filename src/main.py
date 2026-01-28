@@ -33,6 +33,7 @@ def main():
     mean = 0.0
     std = 0.05
 
+
     name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
     name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
@@ -67,19 +68,19 @@ def main():
     print(f"Training time: {end - start:.2f} seconds")
 
     print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
-    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
                                                                             evaluation_on="train")
     print("ConcatenatedPredictiveVAE test results:")
-    print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}")
+    print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
     print(cr)
 
     print("-" * 100)
 
     print(f"Starting ConcatenatedPredictiveVAE testing on test set...")
-    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro = CPVAE_model.evaluate(test_loader, CPVAE_criterion,
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(test_loader, CPVAE_criterion,
                                                                             evaluation_on="test")
     print("ConcatenatedPredictiveVAE test results:")
-    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro}")
+    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
 
 if __name__ == '__main__':
