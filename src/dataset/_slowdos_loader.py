@@ -5,7 +5,7 @@ import pickle
 
 from torch.utils.data import Dataset
 from src.support.utils import get_base_dir
-from src.dataset.utils import read_paths, string_labels, remove_labels
+from src.dataset.utils import read_paths, string_labels, remove_labels,  remove_collinear_features
 
 
 def _class_string2int(dataFrames: list[pandas.DataFrame], labels: list[str]) -> list[pandas.DataFrame]:
@@ -13,10 +13,10 @@ def _class_string2int(dataFrames: list[pandas.DataFrame], labels: list[str]) -> 
     for df in dataFrames:
         for string in labels:
             if string == "DDoS" or string == "dos" or string == "HTTPFlood":
-                df = df.replace(string, 1)
+                df = df.replace(string, 2)
 
             elif string == "DoS Slowhttptest" or string == "DoS slowloris" or string == "slowite" or string == "SlowrateDoS":
-                df = df.replace(string, 2)
+                df = df.replace(string, 1)
 
             else:
                 df = df.replace(string, 0)
@@ -39,7 +39,9 @@ def load_slowdos_dataframe() -> pandas.DataFrame:
         dataframes = remove_labels(dataframes, labels, ["DDoS", "DoS Slowhttptest", "DoS slowloris", "BENIGN"])
         dataframes = _class_string2int(dataframes, labels)
         dataframe = pandas.concat(dataframes)
-        dataframe = dataframe.drop([" Destination Port"], axis="columns")
+        dataframe = dataframe.drop([" Destination Port", " Bwd PSH Flags", " Fwd URG Flags", " Bwd URG Flags", " CWE Flag Count", " ECE Flag Count", "Fwd Avg Bytes/Bulk", " Fwd Avg Packets/Bulk", " Fwd Avg Bulk Rate", " Bwd Avg Bytes/Bulk", " Bwd Avg Packets/Bulk", " Bwd Avg Packets/Bulk", "Bwd Avg Bulk Rate", " RST Flag Count"], axis="columns")
         dataframe = dataframe.rename(columns={" Label": "attack"})
+        dataframe = dataframe[dataframe["attack"] != 2]
+        dataframe = remove_collinear_features(dataframe, 0.95)
         dataframe.to_pickle(path_processed_dataset)
         return dataframe

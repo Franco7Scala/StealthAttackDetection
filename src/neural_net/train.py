@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from sklearn.metrics import roc_auc_score, classification_report
+from sklearn.metrics import roc_auc_score, classification_report, precision_recall_curve, auc, classification_report,recall_score, confusion_matrix
+import numpy as np
 import pandas as pd
+
 
 
 class Trainer:
@@ -66,6 +68,10 @@ class Trainer:
         self.model.train()
     
         n_neg = batch_size - n_pos
+        x_pos = x_pos.to(self.device)
+        y_pos = y_pos.to(self.device)
+        x_neg = x_neg.to(self.device)
+        y_neg = y_neg.to(self.device)
     
         for epoch in range(epochs):
             epoch_loss = 0.0
@@ -90,7 +96,8 @@ class Trainer:
 
 
                 #idx_neg = torch.randint(0, len(x_neg), (n_neg,))
-                idx_neg = torch.randperm(len(x_neg))[:n_neg]
+                #idx_neg = torch.randperm(len(x_neg))[:n_neg]
+                idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
 
                 xb_neg = x_neg[idx_neg]
                 yb_neg = y_neg[idx_neg]
@@ -158,7 +165,14 @@ class Trainer:
         run_loss /= len(dataloader)
 
         # metriche
-        auc = roc_auc_score(y_true, y_prob)
+        auc_ = roc_auc_score(y_true, y_prob)
+        recalls_per_class = recall_score(y_true, y_pred, average=None)
+        gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
+        precision, recall, _ = precision_recall_curve(y_true, y_prob)
+        pr_auc = auc(recall, precision)  # area sotto la curva precision-recall
+        cm = confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = cm.ravel()
+        fpr = fp / (fp + tn)
         df = pd.DataFrame({
                 "y_true": y_true,
                 "prob_preds": y_prob
@@ -167,8 +181,14 @@ class Trainer:
 
         print(" Test Results")
         print(f"Loss media test set: {run_loss:.6f}")
-        print(f"AUC:  {auc:.6f}")
+        print(f"AUC:  {auc_:.6f}")
+        print(f'PR_AUC: {pr_auc:.6f}')
+        print(f"G-Mean (macro): {gmean_macro:.6f}")
         print("\nClassification Report:")
         print(classification_report(y_true, y_pred, digits=4))
+        print("\nConfusion Matrix:")
+        print(cm)
+        print(f'FAR: {fpr}')
+        print(tn,fp,fn,tp)
 
-        return run_loss, auc
+        return run_loss, auc_, pr_auc, gmean_macro

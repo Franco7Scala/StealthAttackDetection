@@ -11,7 +11,7 @@ import pickle
 import time
 import xgboost as xgb
 import numpy as np
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, roc_auc_score, precision_recall_curve, auc
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, roc_auc_score, precision_recall_curve, auc,confusion_matrix
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -49,8 +49,11 @@ def train_model(model, args):
     gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
     rc_precision, rc_recall, rc_thresholds = precision_recall_curve(y_test, pred_prob[:, 1])
     pr_auc = auc(rc_recall, rc_precision)
+    cm = confusion_matrix(y_test,pred)
+    tn, fp, fn, tp = cm.ravel()
+    fpr = fp / (fp + tn)
     print("Results:")
-    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc_score}\ngmean_macro: {gmean_macro}\npr_auc: {pr_auc}")
+    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc_score}\ngmean_macro: {gmean_macro}\npr_auc: {pr_auc}\nConfusionMat: {cm}\nFAR: {fpr}")
     print(classification_report(y_test, pred, target_names=["Benign", "Attack"]))
 
 
@@ -67,7 +70,7 @@ if __name__ == "__main__":
     scale_pos_weight = compute_scale_pos_weight(y_train_np)
 
     
-    models = [GaussianNB(), DecisionTreeClassifier(max_depth=3, class_weight='balanced'), KNeighborsClassifier(n_neighbors=3),
+    models = [GaussianNB(), DecisionTreeClassifier(class_weight='balanced'), KNeighborsClassifier(n_neighbors=3),
               RandomForestClassifier(n_estimators=80, class_weight='balanced'), xgb.XGBClassifier(base_score=0.5, n_estimators=80,scale_pos_weight=scale_pos_weight)]
     
     args = parse_arguments()
