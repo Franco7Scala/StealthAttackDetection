@@ -64,7 +64,6 @@ def _split_dataframe(dataset, args):
 
     if args.apply_normalization:
         # normalize_values(xy)
-        # remove_collinear_features(xy, 0.95)
         scaler = MinMaxScaler()
         scaler.fit(x_train_unsupervised)
         x_train_unsupervised = scaler.transform(x_train_unsupervised)
