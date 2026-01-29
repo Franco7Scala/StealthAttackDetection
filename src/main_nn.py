@@ -99,8 +99,8 @@ def run(params, args):
         # Test / Evaluation
         # ----------------------------
         print("\n--- Test ---")
-        test_loss, auc_score = trainer.test(test_loader)
-        print(f"Iteration {i} - Test Loss: {test_loss:.6f}, AUC: {auc_score:.6f}")
+        test_loss, Auc, pr_auc,gmean_macro = trainer.test(test_loader)
+        print(f"Iteration {i} - Test Loss: {test_loss:.6f}, AUC: {Auc:.6f}, PR_AUC: {pr_auc:.6f}, Gmean: {gmean_macro:.6f}")
 
 
 

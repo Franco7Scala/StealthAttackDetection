@@ -22,6 +22,7 @@ def compute_scale_pos_weight(y_train_np):
     return n_neg / n_pos
 
 
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -34,6 +35,7 @@ def str2bool(v):
 
     else:
         raise Exception("Boolean value expected.")
+
 
 
 def print_args(args):
