@@ -101,7 +101,7 @@ class AE_Trainer:
             # Calcolo metriche puntuali
             acc = accuracy_score(y_true, y_pred)
             # Usiamo macro averaging per le metriche di classificazione
-            prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='binary')
+            prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
             
             tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
             far = fp / (fp + tn) if (fp + tn) > 0 else 0
@@ -182,7 +182,7 @@ class AE_Trainer:
         pr_auc = auc(rec_pts, prec_pts)
 
         acc = accuracy_score(y_true, y_pred)
-        p, r, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='binary', zero_division=0)
+        p, r, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro', zero_division=0)
         
         tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
         far = fp / (fp + tn) if (fp + tn) > 0 else 0
