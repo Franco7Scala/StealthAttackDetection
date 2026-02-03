@@ -89,7 +89,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return loss_sum / count
 
-    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, n_pos=5):
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5):
         self.train()
         self.model1.train()
         self.model3.eval()
@@ -116,8 +116,10 @@ class ConcatenatedPredictiveVAE(nn.Module):
         y_pos = y_all[mask_pos].to(self.device)
         x_neg = x_all[mask_neg].to(self.device)
         y_neg = y_all[mask_neg].to(self.device)
+        n_pos = x_pos.size(0)
+        current_batch_size = int((n_pos / min_budget) * batch_size)
     
-        n_neg = batch_size - n_pos
+        n_neg = current_batch_size - n_pos
         n_batches = len(x_neg) // n_neg
 
         epoch_loss = 0.0
@@ -256,7 +258,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         train_losses_per_epoch = []
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,n_pos=5)
+            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5)
             train_losses_per_epoch.append(avg_loss)
             if test_loader is not None:
                 accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro,cm,far = self.evaluate(test_loader, criterion)
