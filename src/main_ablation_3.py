@@ -6,10 +6,9 @@ import torch.nn as nn
 
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model import ConcatenatedPredictiveVAE
+from src.Ablation_3.model_simple import SimpleModel
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
-from src.arn.model import Generator, Discriminator
 
 def main():
     args = parse_arguments()
@@ -35,24 +34,9 @@ def main():
     std = 0.05
 
 
-    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
-    name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
+    
 
-    path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
-    path_MC_model = os.path.join(args.SAVE_FOLDER, 'models', name_MC_model)
-
-    MC_model = Discriminator(nc = input_size, nc_out=args.nc_out, nout=args.nout).to(device)
-    MC_model.load_state_dict(torch.load(path_MC_model))
-
-    if args.apply_normalization:
-      VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out,
-                           z_dim=args.z_dim, out_activation=nn.ReLU).to(device)
-    else:
-        VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
-
-    VAE_model.load_state_dict(torch.load(path_VAE_model))
-
-    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
+    CPVAE_model = SimpleModel(input_size, output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()

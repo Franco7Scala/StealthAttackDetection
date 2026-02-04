@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader
 from src.support.utils import get_base_dir
 
 
+
+
 class ConcatenatedPredictiveVAE(nn.Module):
 
     def __init__(self, model1, model3, input_size, output_size, device,params,random_noise=True, mean=0., std=1.):
@@ -155,8 +157,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
-        _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
-        print(f"Auc: {auc_}")
+        #_, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
+        #print(f"Auc: {auc_}")
         return epoch_loss
 
 

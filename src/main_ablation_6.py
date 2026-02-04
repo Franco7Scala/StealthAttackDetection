@@ -9,7 +9,8 @@ from src.support.arguments import parse_arguments
 from src.model.predictive_model import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
-from src.arn.model import Generator, Discriminator
+from src.arn.model import  Discriminator
+from src.Ablation_1.VAE import VAE
 
 def main():
     args = parse_arguments()
@@ -30,12 +31,12 @@ def main():
 
     input_size = x_train_unsupervised.shape[1]
     output_size = 1
-    random_noise = True
+    random_noise = False
     mean = 0.0
     std = 0.05
 
 
-    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
+    name_VAE_model = f'last_model_vae_abl.pth'
     name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
     path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
@@ -45,12 +46,13 @@ def main():
     MC_model.load_state_dict(torch.load(path_MC_model))
 
     if args.apply_normalization:
-      VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out,
+      VAE_model = VAE(nf_in=input_size, nf_out=args.nf_out,
                            z_dim=args.z_dim, out_activation=nn.ReLU).to(device)
     else:
-        VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
+        VAE_model = VAE(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
 
-    VAE_model.load_state_dict(torch.load(path_VAE_model))
+    checkpoint = torch.load(path_VAE_model, map_location=device)
+    VAE_model.load_state_dict(checkpoint['model_state_dict'])
 
     CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
