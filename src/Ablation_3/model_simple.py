@@ -11,24 +11,23 @@ from torch.utils.data import DataLoader
 from src.support.utils import get_base_dir
 
 
-class ConcatenatedPredictiveVAE(nn.Module):
+class SimpleModel(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device,params,random_noise=True, mean=0., std=1.):
-        super(ConcatenatedPredictiveVAE, self).__init__()
+    def __init__(self,input_size, output_size, device,params,random_noise=True, mean=0., std=1.):
+        super(SimpleModel, self).__init__()
         self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
       
         self.device = device
-        self.model1 = model1
-        self.model3 = model3
+      
         self.fully_connected_1 = nn.Sequential(
-            nn.Linear(input_size, 12),
+            nn.Linear(input_size, 64),
             nn.ReLU(),
-            nn.Linear(12, 12),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(12, output_size),
+            nn.Linear(64, output_size),
         )
         self.to(self.device)
         self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
@@ -47,59 +46,15 @@ class ConcatenatedPredictiveVAE(nn.Module):
         if self.random_noise:
             x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
-        x1 = self.model1.encode(x) #ff network
-        _, x3, _ = self.model3.encode(x) #VAE network
-        x = torch.cat((x1, x3), dim=1)
         #x = x1 #
         logits = self.fully_connected_1(x)
         return logits.flatten()
 
-# -----train and test-----#
-    def _train_epoch(self, train_loader, optimizer, criterion):
-        self.train()
 
-        #-----freeze model1, model2 and model3-----#
-        self.model1.train()
-        self.model3.eval()
-        for param in self.model1.parameters():
-            param.requires_grad = True
-
-        for param in self.model3.parameters():
-            param.requires_grad = False
-        # -----freeze model1, model2 and model3-----#
-
-        loss_sum = 0
-        count = 0
-
-        for i, (x, y) in enumerate(train_loader):
-            optimizer.zero_grad()
-            x = x.to(self.device)
-            y = y.to(self.device)
-
-            logits = self(x)
-            loss = criterion(logits, y)
-            loss.backward()
-            #torch.nn.utils.clip_grad_norm_(self.parameters(), 0.5)
-            optimizer.step()
-            loss_sum += loss.item()
-            count += 1
-
-        _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
-        print(f"Auc: {auc_}")
-
-        return loss_sum / count
 
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5):
         self.train()
-        self.model1.train()
-        self.model3.eval()
-        
-        for param in self.model1.parameters():
-            param.requires_grad = True
-
-        for param in self.model3.parameters():
-            param.requires_grad = False
-    
+      
 
         x_all = []
         y_all = []
