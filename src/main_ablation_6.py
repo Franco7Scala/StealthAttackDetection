@@ -31,7 +31,7 @@ def main():
 
     input_size = x_train_unsupervised.shape[1]
     output_size = 1
-    random_noise = False
+    random_noise = True
     mean = 0.0
     std = 0.05
 

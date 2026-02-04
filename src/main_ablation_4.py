@@ -75,6 +75,7 @@ def main():
     #print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
     #print(cr)
     print("EVALUATE LAST MODEL")
+    CPVAE_model.load_state_dict(torch.load(last_model_path))
     print("-" * 100)
 
     print(f"Starting ConcatenatedPredictiveVAE testing on test set...")

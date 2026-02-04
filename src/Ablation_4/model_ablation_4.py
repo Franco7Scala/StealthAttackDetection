@@ -239,6 +239,7 @@ class model(nn.Module):
             print("Final results:")
             print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
+        torch.save(self.state_dict(), last_model_path)
 
     def plotLoss(self, loss):
         plt.figure(figsize=(10, 6))

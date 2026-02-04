@@ -218,7 +218,7 @@ class model(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
-    def fit(self, epochs, optimizer, criterion, train_loader,batch_size, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader,batch_size, best_model_path="", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
         best_auprc = -np.inf
         accuracy, precision, recall, f1 = 0, 0, 0, 0
@@ -242,6 +242,7 @@ class model(nn.Module):
             print("Final results:")
             print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
+        torch.save(self.state_dict(), last_model_path)
 
     def plotLoss(self, loss):
         plt.figure(figsize=(10, 6))
