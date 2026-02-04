@@ -1,0 +1,3 @@
+Ablation: NO vae_enc 
+( input -> data augmenter -> disc -> decisore: il discriminatore e' quello di ARN)
+lanciare main_ablation_4.py con batch_size 16

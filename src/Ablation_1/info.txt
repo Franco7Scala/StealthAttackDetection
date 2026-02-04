@@ -1,0 +1,6 @@
+1) my algo + disc_scratch + vae_norm
+
+Va lanciato il main_ablation_1.py dove viene pretrainato un VAE, il modello salvato in saved/models e poi caricato.
+
+da lanciare con batch_size=16
+n_exps= mettere il nome dell'esperimento

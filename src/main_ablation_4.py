@@ -6,10 +6,11 @@ import torch.nn as nn
 
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model import ConcatenatedPredictiveVAE
+from src.Ablation_4.model_ablation_4 import model
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
-from src.arn.model import Generator, Discriminator
+from src.arn.model import Discriminator
+
 
 def main():
     args = parse_arguments()
@@ -35,24 +36,18 @@ def main():
     std = 0.05
 
 
-    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
+ 
     name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
-    path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
+
     path_MC_model = os.path.join(args.SAVE_FOLDER, 'models', name_MC_model)
 
     MC_model = Discriminator(nc = input_size, nc_out=args.nc_out, nout=args.nout).to(device)
     MC_model.load_state_dict(torch.load(path_MC_model))
 
-    if args.apply_normalization:
-      VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out,
-                           z_dim=args.z_dim, out_activation=nn.ReLU).to(device)
-    else:
-        VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
 
-    VAE_model.load_state_dict(torch.load(path_VAE_model))
 
-    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
+    CPVAE_model = model(MC_model, args.nc_out, output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
@@ -68,12 +63,12 @@ def main():
     print("ConcatenatedPredictiveVAE done!")
     print(f"Training time: {end - start:.2f} seconds")
 
-    print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
-    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
-                                                                            evaluation_on="train")
-    print("ConcatenatedPredictiveVAE test results:")
-    print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
-    print(cr)
+    #print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
+    #accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
+    #                                                                        evaluation_on="train")
+    #print("ConcatenatedPredictiveVAE test results:")
+    #print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
+    #print(cr)
 
     print("-" * 100)
 

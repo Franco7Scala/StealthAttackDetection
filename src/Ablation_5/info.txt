@@ -1,0 +1,4 @@
+NO backbone supervisionata 
+( input -> Data augmenter -> Encoder -> decisore , l'encoder è quello di ARN)
+
+lanciare main_ablation_5.py con batch_size_16
