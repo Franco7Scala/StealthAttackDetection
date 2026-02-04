@@ -192,9 +192,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
             tp_concatenated = np.concatenate((tp_output_probs, tp_ground_truth))
             output_probs.extend(tp_concatenated.tolist())
 
-        precision = precision_score(all_targets, all_preds, average="weighted", zero_division=0)
-        recall = recall_score(all_targets, all_preds, average="weighted", zero_division=0)
-        f1 = f1_score(all_targets, all_preds, average="weighted", zero_division=0)
+        precision = precision_score(all_targets, all_preds, average="macro", zero_division=0)
+        recall = recall_score(all_targets, all_preds, average="macro", zero_division=0)
+        f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
         auc_ = roc_auc_score(y_true=all_targets, y_score=all_pred_probs)
         cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
         cm = confusion_matrix(all_targets,all_preds)
