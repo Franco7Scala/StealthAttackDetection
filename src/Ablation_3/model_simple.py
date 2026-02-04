@@ -23,11 +23,11 @@ class SimpleModel(nn.Module):
         self.device = device
       
         self.fully_connected_1 = nn.Sequential(
-            nn.Linear(input_size, 64),
+            nn.Linear(input_size, 12),
             nn.ReLU(),
-            nn.Linear(64, 64),
+            nn.Linear(12, 12),
             nn.ReLU(),
-            nn.Linear(64, output_size),
+            nn.Linear(12, output_size),
         )
         self.to(self.device)
         self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
