@@ -32,7 +32,7 @@ def main():
     mean = 0.0
     std = 0.05
 
-    CPVAE_model = model(input_size, args.z_dim + args.nc_out, output_size, device, params=vars(args),
+    CPVAE_model = model(input_size, args.nc_out, output_size, device, params=vars(args),
                         random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
