@@ -72,31 +72,62 @@ def main():
         std=0.05
     )
 
-    # Ottimizzatore solo per le parti non congelate (Disc + Head)
+  
     CPVAE_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CPVAE_model.parameters()), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
+    our_model_folder = os.path.join(args.SAVE_FOLDER, 'our_models')
+    os.makedirs(our_model_folder, exist_ok=True)
+    last_model_path = os.path.join(args.SAVE_FOLDER, 'our_models', f'last_our_models_{args.attack_type}_{args.n_exps}.pt')
+    best_model_path = os.path.join(args.SAVE_FOLDER, 'our_models', f'best_our_models_{args.attack_type}_{args.n_exps}.pt')
 
     start = time.time()
     # Il metodo fit del CPVAE gestisce il bilanciamento e il congelamento internamente
-    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader, batch_size)
+    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader, batch_size,best_model_path=best_model_path, last_model_path=last_model_path)
     end = time.time()
 
     print(f"\nTraining Ibrido completato in: {end - start:.2f} secondi")
 
-    # --- VALUTAZIONE FINALE ---
-    print("\n>>> Valutazione Finale su Test Set...")
-    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro, cm, fpr = CPVAE_model.evaluate(
-        test_loader, CPVAE_criterion, evaluation_on="test"
-    )
-    
-    print("-" * 30)
-    print(f"Accuracy:  {accuracy:.4f}")
-    print(f"F1 Score:  {f1:.4f}")
-    print(f"AUC-ROC:   {auc:.4f}")
-    print(f"FAR:       {fpr:.4f}")
-    print(f"pr_auc:       {pr_auc:.4f}")
-    print(f"gmean:       {gmean_macro:.4f}")
-    print(f"Confusion Matrix:\n{cm}")
+    print('Evaluate with Last Model')
+
+    CPVAE_model.load_state_dict(torch.load(last_model_path))
+
+    print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
+                                                                            evaluation_on="train")
+    print("ConcatenatedPredictiveVAE test results:")
+    print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
+    print(cr)
+
+    print("-" * 100)
+
+    print(f"Starting ConcatenatedPredictiveVAE testing on test set...")
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(test_loader, CPVAE_criterion,
+                                                                            evaluation_on="test")
+    print("ConcatenatedPredictiveVAE test results:")
+    print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
+    print(cr)
+
+    print('Evaluate with Best Model')
+
+    CPVAE_model.load_state_dict(torch.load(best_model_path))
+    print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro, cm, fpr = CPVAE_model.evaluate(train_few_shot_loader,
+                                                                                                  CPVAE_criterion,
+                                                                                                  evaluation_on="train")
+    print("ConcatenatedPredictiveVAE test results:")
+    print(
+        f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, Confusion Mat: {cm}, FAR: {fpr}")
+    print(cr)
+
+    print("-" * 100)
+
+    print(f"Starting ConcatenatedPredictiveVAE testing on test set...")
+    accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro, cm, fpr = CPVAE_model.evaluate(test_loader,
+                                                                                                  CPVAE_criterion,
+                                                                                                  evaluation_on="test")
+    print("ConcatenatedPredictiveVAE test results:")
+    print(
+        f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
 
 if __name__ == '__main__':

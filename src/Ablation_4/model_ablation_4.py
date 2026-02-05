@@ -156,9 +156,9 @@ class model(nn.Module):
             tp_concatenated = np.concatenate((tp_output_probs, tp_ground_truth))
             output_probs.extend(tp_concatenated.tolist())
 
-        precision = precision_score(all_targets, all_preds, average="weighted", zero_division=0)
-        recall = recall_score(all_targets, all_preds, average="weighted", zero_division=0)
-        f1 = f1_score(all_targets, all_preds, average="weighted", zero_division=0)
+        precision = precision_score(all_targets, all_preds, average="macro", zero_division=0)
+        recall = recall_score(all_targets, all_preds, average="macro", zero_division=0)
+        f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
         auc_ = roc_auc_score(y_true=all_targets, y_score=all_pred_probs)
         cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
         cm = confusion_matrix(all_targets,all_preds)
@@ -218,12 +218,19 @@ class model(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
-    def fit(self, epochs, optimizer, criterion, train_loader,batch_size, test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader,batch_size,best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
+        best_auprc = -np.inf
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
             avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5)
             train_losses_per_epoch.append(avg_loss)
+            _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)
+            print(f"Auc: {auc_}, AUPRC: {pr_auc}")
+            if pr_auc > best_auprc:
+                print('Save best model')
+                best_auprc = pr_auc
+                torch.save(self.state_dict(), best_model_path)
             if test_loader is not None:
                 accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro,cm,far = self.evaluate(test_loader, criterion)
 
@@ -232,6 +239,7 @@ class model(nn.Module):
             print("Final results:")
             print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
+        torch.save(self.state_dict(), last_model_path)
 
     def plotLoss(self, loss):
         plt.figure(figsize=(10, 6))

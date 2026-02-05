@@ -1,0 +1,5 @@
+No ARN
+(input -> Data augmenter -> Linear -> decisore)
+Linear serve a trasformare input dim nella stessa dimensione che prende il decisore quando c'è ARN (quindi 12)
+
+lanciare main_ablation_8.py con batch_size_16
