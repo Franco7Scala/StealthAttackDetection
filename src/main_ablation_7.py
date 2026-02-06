@@ -64,7 +64,7 @@ def main():
     CPVAE_model = ConcatenatedPredictiveVAE(
         model1=MC_model, 
         model3=VAE_model, 
-        input_size=(args.z_dim + args.nc_out), 
+        input_size=(args.z_dim + args.nc_out+input_size), 
         output_size=1, 
         device=device,
         params=vars(args),

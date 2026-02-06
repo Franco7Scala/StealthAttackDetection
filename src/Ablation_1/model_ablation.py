@@ -51,7 +51,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         x1 = self.model1.encode(x) #ff network
         _, x3, _ = self.model3.encode(x) #VAE network
-        x = torch.cat((x1, x3), dim=1)
+        x = torch.cat((x1, x3,x), dim=1)
         #x = x1 #
         logits = self.fully_connected_1(x)
         return logits.flatten()
