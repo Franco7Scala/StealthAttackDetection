@@ -6,7 +6,7 @@ import torch.nn as nn
 
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model import ConcatenatedPredictiveVAE
+from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import  Discriminator
@@ -33,7 +33,7 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
+    std = 0.1
 
 
     name_VAE_model = f'last_model_vae_abl.pth'
