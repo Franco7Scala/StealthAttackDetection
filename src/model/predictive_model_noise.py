@@ -5,60 +5,101 @@ import os
 from typing import Optional
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, \
-    roc_auc_score, precision_recall_curve, auc, roc_curve, confusion_matrix
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc,roc_curve,confusion_matrix
 from torch.utils.data import DataLoader
 
 from src.support.utils import get_base_dir
 
 
-class model(nn.Module):
+class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, n_features, input_size, output_size, device, params, random_noise=True, mean=0., std=1.):
-        super(model, self).__init__()
+    def __init__(self, model1, model3, input_size, output_size, device, params, random_noise=True, mean=0., std=1.):
+        super(ConcatenatedPredictiveVAE, self).__init__()
         self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
-
+      
         self.device = device
-        #self.fc = nn.Sequential(
-         #   nn.Linear(n_features, input_size),
-         #   nn.ReLU()
-       # )
+        self.model1 = model1
+        self.model3 = model3
         self.fully_connected_1 = nn.Sequential(
-            nn.Linear(n_features, input_size),
+            nn.Linear(input_size, 12),
             nn.ReLU(),
-            nn.Linear(input_size, input_size),
+            nn.Linear(12, 12),
             nn.ReLU(),
-            nn.Linear(input_size, output_size),
+            nn.Linear(12, output_size),
         )
         self.to(self.device)
-        self.attack_type = self.params['attack_type']
+        self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
         self.save_folder = self.params['SAVE_FOLDER']
         self.n_exps = self.params['n_exps']
         self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.n_exps}')
-        self.prc_dir = os.path.join(self.save_folder, 'prc_model', f'prc_model_{self.attack_type}_{self.n_exps}')
-        self.auc_dir = os.path.join(self.save_folder, 'auc_model', f'auc_model_{self.attack_type}_{self.n_exps}')
-        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv',
-                                          f'output_probs_{self.attack_type}_{self.n_exps}')
+        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.n_exps}')
+        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.n_exps}')
+        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.n_exps}')
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.auc_dir, exist_ok=True)
         os.makedirs(self.prc_dir, exist_ok=True)
         os.makedirs(self.probs_csv_dir, exist_ok=True)
 
     def forward(self, x):
-        if self.random_noise:
-            x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
+        #if self.random_noise:
+         #   x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
-        #x = self.fc(x)
-        logits = self.fully_connected_1(x)
+        x1 = self.model1.encode(x) #ff network
+        _, x3, _ = self.model3.encode(x) #VAE network
+        features = torch.cat((x1, x3, x), dim=1)
+        #x = x1 #
+        logits = self.fully_connected_1(features)
         return logits.flatten()
 
-    # -----train and test-----#
-
-    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget=5):
+# -----train and test-----#
+    def _train_epoch(self, train_loader, optimizer, criterion):
         self.train()
+
+        #-----freeze model1, model2 and model3-----#
+        self.model1.train()
+        self.model3.eval()
+        for param in self.model1.parameters():
+            param.requires_grad = True
+
+        for param in self.model3.parameters():
+            param.requires_grad = False
+        # -----freeze model1, model2 and model3-----#
+
+        loss_sum = 0
+        count = 0
+
+        for i, (x, y) in enumerate(train_loader):
+            optimizer.zero_grad()
+            x = x.to(self.device)
+            y = y.to(self.device)
+
+            logits = self(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            #torch.nn.utils.clip_grad_norm_(self.parameters(), 0.5)
+            optimizer.step()
+            loss_sum += loss.item()
+            count += 1
+
+        _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
+        print(f"Auc: {auc_}")
+
+        return loss_sum / count
+
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5):
+        self.train()
+        self.model1.train()
+        self.model3.eval()
+        
+        for param in self.model1.parameters():
+            param.requires_grad = True
+
+        for param in self.model3.parameters():
+            param.requires_grad = False
+    
 
         x_all = []
         y_all = []
@@ -67,7 +108,7 @@ class model(nn.Module):
             y_all.append(y)
         x_all = torch.cat(x_all, dim=0)
         y_all = torch.cat(y_all, dim=0)
-
+    
         # separa anomalie e normali
         mask_pos = (y_all == 1)
         mask_neg = (y_all == 0)
@@ -77,44 +118,51 @@ class model(nn.Module):
         y_neg = y_all[mask_neg].to(self.device)
         n_pos = x_pos.size(0)
         current_batch_size = int((n_pos / min_budget) * batch_size)
-
+    
         n_neg = current_batch_size - n_pos
         n_batches = len(x_neg) // n_neg
 
         epoch_loss = 0.0
 
         for i in tqdm(range(n_batches)):
+     
             xb_pos = x_pos
             yb_pos = y_pos
+            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
+            if self.random_noise:
 
-            # idx_neg = torch.randperm(len(x_neg))[:n_neg]
+                noise = torch.randn_like(xb_pos) * self.std + self.mean
+                xb_pos = xb_pos + noise
+
+            #idx_neg = torch.randperm(len(x_neg))[:n_neg]
             idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
             xb_neg = x_neg[idx_neg]
             yb_neg = y_neg[idx_neg]
-
+    
             # batch completo
             x_batch = torch.cat([xb_pos, xb_neg], dim=0)
             y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
-
+    
             # shuffle batch
             perm = torch.randperm(len(y_batch))
             x_batch = x_batch[perm]
             y_batch = y_batch[perm]
-
+    
             # forward/backward
             optimizer.zero_grad()
             logits = self(x_batch)
             loss = criterion(logits, y_batch)
             loss.backward()
             optimizer.step()
-
+    
             epoch_loss += loss.item()
-
+    
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
         # _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
         # print(f"Auc: {auc_}")
         return epoch_loss
+
 
     def evaluate(self, loader, criterion, evaluation_on="test"):
         accuracy_am = AverageMeter('Accuracy', ':6.2f')
@@ -153,7 +201,7 @@ class model(nn.Module):
         f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
         auc_ = roc_auc_score(y_true=all_targets, y_score=all_pred_probs)
         cr = classification_report(all_targets, all_preds, target_names=["Benign", "Attack"])
-        cm = confusion_matrix(all_targets, all_preds)
+        cm = confusion_matrix(all_targets,all_preds)
         tn, fp, fn, tp = cm.ravel()
         far = fp / (fp + tn)
 
@@ -164,7 +212,7 @@ class model(nn.Module):
         recalls_per_class = recall_score(all_targets, all_preds, average=None)
         gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
 
-        # ---------------------------------------
+        #---------------------------------------
         # Step 7: Plot the Precision-Recall curve.
         plt.plot(rc_recall, rc_precision, marker='.', label='Logistic')
         plt.xlabel('Recall')
@@ -172,8 +220,8 @@ class model(nn.Module):
         plt.title('Precision-Recall curve')
         plt.savefig(os.path.join(self.prc_dir, f'pr_curve_{evaluation_on}.png'))
 
-        # Step 8: Plot the ROC-AUC-CURVE
-        plt.figure(figsize=(8, 6))
+        #Step 8: Plot the ROC-AUC-CURVE
+        plt.figure(figsize=(8,6))
         plt.plot(fpr, tpr)
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
@@ -181,8 +229,8 @@ class model(nn.Module):
         plt.grid(True)
         plt.savefig(os.path.join(self.auc_dir, f'roc_curve_{evaluation_on}.png'))
         plt.close()
-
-        # plt.show()
+        
+        #plt.show()
         # ---------------------------------------
 
         precision_am.update(precision)
@@ -191,32 +239,36 @@ class model(nn.Module):
 
         self.no_grad = False
 
-        # string_csv = "\n".join([str(x) for x in output_probs])
 
-        # with open(f"{get_base_dir()}/output_probs_{evaluation_on}.csv", "w") as f:
-        #  f.write(string_csv)
+        #string_csv = "\n".join([str(x) for x in output_probs])
 
+        #with open(f"{get_base_dir()}/output_probs_{evaluation_on}.csv", "w") as f:
+          #  f.write(string_csv)
+
+        
         # Creiamo un array con le colonne: y_true, y_pred_prob
         output_array = np.column_stack((all_targets, all_pred_probs))
-
+        
         # Salviamo il CSV
         csv_path = os.path.join(self.probs_csv_dir, f'output_{evaluation_on}.csv')
         np.savetxt(csv_path, output_array, delimiter=',', header='y_true,y_pred_prob', comments='')
-
+        
         print(f"[INFO] Saved predictions and labels to {csv_path}")
 
-        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro, cm, far
 
-    def fit(self, epochs, optimizer, criterion, train_loader, batch_size, best_model_path="", last_model_path="",
-            test_loader: Optional[DataLoader] = None):
+        return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
+
+    def fit(self, epochs, optimizer, criterion, train_loader, batch_size, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
+
         best_auprc = -np.inf
+
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion, batch_size, min_budget=5)
+            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5)
             train_losses_per_epoch.append(avg_loss)
 
-            _, _, _, _, auc_, _, pr_auc, _, _, _ = self.evaluate(train_loader, criterion)
+            _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)
             print(f"Auc: {auc_}, AUPRC: {pr_auc}")
 
             if pr_auc > best_auprc:
@@ -225,15 +277,14 @@ class model(nn.Module):
                 torch.save(self.state_dict(), best_model_path)
 
             if test_loader is not None:
-                accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro, cm, far = self.evaluate(test_loader,
-                                                                                                        criterion)
+                accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro,cm,far = self.evaluate(test_loader, criterion)
 
         print("Finished training CPVAE!")
         if test_loader is not None:
             print("Final results:")
-            print(
-                f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
+            print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
+
         torch.save(self.state_dict(), last_model_path)
 
     def plotLoss(self, loss):
@@ -247,7 +298,7 @@ class model(nn.Module):
         plt.savefig(os.path.join(self.loss_dir, f'loss_model_training.png'))
         plt.show()
         plt.close()
-
+        
 
 # -----train and test-----#
 
