@@ -92,7 +92,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return loss_sum / count
 
-    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5):
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=1):
         self.train()
         self.model1.train()
         self.model3.eval()
@@ -120,17 +120,27 @@ class ConcatenatedPredictiveVAE(nn.Module):
         x_neg = x_all[mask_neg].to(self.device)
         y_neg = y_all[mask_neg].to(self.device)
         n_pos = x_pos.size(0)
-        current_batch_size = int((n_pos / min_budget) * batch_size)
+        
+        #current_batch_size = int((n_pos / min_budget) * batch_size)
     
-        n_neg = current_batch_size - n_pos
+        #n_neg = current_batch_size - n_pos
+        #n_batches = len(x_neg) // n_neg
+
+        current_batch_size = int(k*(n_pos / min_budget) * batch_size)
+        n_neg = current_batch_size - k*n_pos
         n_batches = len(x_neg) // n_neg
+        xb_pos = torch.cat([x_pos] * k, dim=0)
+        yb_pos = torch.cat([y_pos] * k, dim=0)
+
+        
+            
 
         epoch_loss = 0.0
 
         for i in tqdm(range(n_batches)):
      
-            xb_pos = x_pos
-            yb_pos = y_pos
+            #xb_pos = x_pos
+            #yb_pos = y_pos
             # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
             if self.random_noise:
                 noise = torch.randn_like(xb_pos) * self.std + self.mean
@@ -143,6 +153,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
             # batch completo
             x_batch = torch.cat([xb_pos, xb_neg], dim=0)
+
             y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
     
             # shuffle batch
@@ -260,14 +271,14 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
-    def fit(self, epochs, optimizer, criterion, train_loader, batch_size, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader, batch_size,k=1, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
 
         best_auprc = -np.inf
 
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5)
+            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             train_losses_per_epoch.append(avg_loss)
 
             _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)

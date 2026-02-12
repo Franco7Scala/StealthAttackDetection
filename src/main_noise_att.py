@@ -33,6 +33,7 @@ def main():
     random_noise = True
     mean = 0.0
     std = 0.05
+    k=1
 
 
     name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
@@ -66,7 +67,7 @@ def main():
     print(f"Starting {attack_type} ConcatenatedPredictiveVAE model training...")
     start = time.time()
     # -----CPVAE model training-----#
-    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size,
+    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size,k=k,
                     best_model_path=best_model_path, last_model_path=last_model_path)
     # -----CPVAE model training-----#
     end = time.time()
