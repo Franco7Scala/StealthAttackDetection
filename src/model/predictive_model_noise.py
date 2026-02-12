@@ -138,10 +138,13 @@ class ConcatenatedPredictiveVAE(nn.Module):
         epoch_loss = 0.0
 
         for i in tqdm(range(n_batches)):
+
      
             #xb_pos = x_pos
             #yb_pos = y_pos
             # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
+            xb_pos = torch.cat([x_pos] * k, dim=0)
+            yb_pos = torch.cat([y_pos] * k, dim=0)
             if self.random_noise:
                 noise = torch.randn_like(xb_pos) * self.std + self.mean
                 xb_pos = xb_pos + noise
