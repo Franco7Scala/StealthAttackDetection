@@ -48,8 +48,8 @@ class model(nn.Module):
         os.makedirs(self.probs_csv_dir, exist_ok=True)
 
     def forward(self, x):
-        if self.random_noise:
-            x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
+        #if self.random_noise:
+         #   x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
         #x = self.fc(x)
         logits = self.fully_connected_1(x)
@@ -86,6 +86,10 @@ class model(nn.Module):
         for i in tqdm(range(n_batches)):
             xb_pos = x_pos
             yb_pos = y_pos
+            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
+            if self.random_noise:
+                noise = torch.randn_like(xb_pos) * self.std + self.mean
+                xb_pos = xb_pos + noise
 
             # idx_neg = torch.randperm(len(x_neg))[:n_neg]
             idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)

@@ -30,7 +30,7 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
+    std = 0.1
 
     CPVAE_model = model(input_size, args.nc_out+args.nf_out, output_size, device, params=vars(args),
                         random_noise=random_noise, mean=mean, std=std)

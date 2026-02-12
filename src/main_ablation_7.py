@@ -69,7 +69,7 @@ def main():
         device=device,
         params=vars(args),
         random_noise=True, 
-        std=0.05
+        std=0.1
     )
 
   

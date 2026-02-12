@@ -46,8 +46,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
         os.makedirs(self.probs_csv_dir, exist_ok=True)
 
     def forward(self, x):
-        if self.random_noise:
-            x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
+        #if self.random_noise:
+         #   x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
         x1 = self.model1.encode(x) #ff network
         _, x3, _ = self.model3.encode(x) #VAE network
@@ -130,6 +130,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
      
             xb_pos = x_pos
             yb_pos = y_pos
+            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
+            if self.random_noise:
+
+                noise = torch.randn_like(xb_pos) * self.std + self.mean
+                xb_pos = xb_pos + noise
     
 
             #idx_neg = torch.randperm(len(x_neg))[:n_neg]
