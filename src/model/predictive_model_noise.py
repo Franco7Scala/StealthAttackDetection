@@ -133,29 +133,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
             yb_pos = y_pos
             # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
             if self.random_noise:
-
-                def augment(xb_pos, copies):
-                    result = torch.zeros((xb_pos.shape[0] * copies, xb_pos.shape[1])).to(xb_pos.device)
-                    size = int(xb_pos.shape[0])
-                    generated = 0
-                    while generated < (size * copies):
-                        index_1, index_2 = random.sample(range(0, size), 2)
-                        x1 = xb_pos[index_1]
-                        x2 = xb_pos[index_2]
-                        alpha = 1.5
-                        lam = np.random.beta(alpha, alpha)
-                        gen_x = Variable(lam * x1 + (1. - lam) * x2)
-                        result[generated] = gen_x
-                        generated += 1
-
-                    return result
-
-                #noise = torch.randn_like(xb_pos) * self.std + self.mean
-                #xb_pos = xb_pos + noise
-                copies = 2
-                xb_pos = augment(xb_pos, copies=copies)
-                yb_pos = yb_pos.repeat_interleave(copies)
-
+                noise = torch.randn_like(xb_pos) * self.std + self.mean
+                xb_pos = xb_pos + noise
 
             #idx_neg = torch.randperm(len(x_neg))[:n_neg]
             idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
