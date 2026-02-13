@@ -6,11 +6,10 @@ import torch.nn as nn
 
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
+from src.model.predictive_model_noise_no_skip import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
-from src.arn.model import  Discriminator
-from src.Ablation_1.VAE import VAE
+from src.arn.model import Generator, Discriminator
 
 def main():
     args = parse_arguments()
@@ -37,7 +36,7 @@ def main():
     k=1
 
 
-    name_VAE_model = f'last_model_vae_abl.pth'
+    name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
     name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
     path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
@@ -47,19 +46,19 @@ def main():
     MC_model.load_state_dict(torch.load(path_MC_model))
 
     if args.apply_normalization:
-      VAE_model = VAE(nf_in=input_size, nf_out=args.nf_out,
+      VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out,
                            z_dim=args.z_dim, out_activation=nn.ReLU).to(device)
     else:
-        VAE_model = VAE(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
+        VAE_model = Generator(nf_in=input_size, nf_out=args.nf_out, z_dim=args.z_dim).to(device)
 
-    checkpoint = torch.load(path_VAE_model, map_location=device)
-    VAE_model.load_state_dict(checkpoint['model_state_dict'])
+    VAE_model.load_state_dict(torch.load(path_VAE_model))
 
-    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out + input_size), output_size, device,params=vars(args),
+    CPVAE_model = ConcatenatedPredictiveVAE(MC_model, VAE_model, (args.z_dim + args.nc_out), output_size, device,params=vars(args),
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
     #CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
+
     our_model_folder = os.path.join(args.SAVE_FOLDER, 'our_models')
     os.makedirs(our_model_folder, exist_ok=True)
     last_model_path = os.path.join(args.SAVE_FOLDER, 'our_models', f'last_our_models_{args.attack_type}_{args.n_exps}.pt')
@@ -68,7 +67,8 @@ def main():
     print(f"Starting {attack_type} ConcatenatedPredictiveVAE model training...")
     start = time.time()
     # -----CPVAE model training-----#
-    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size,k=k,best_model_path=best_model_path, last_model_path=last_model_path)
+    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size,k=k,
+                    best_model_path=best_model_path, last_model_path=last_model_path)
     # -----CPVAE model training-----#
     end = time.time()
 
@@ -78,7 +78,6 @@ def main():
     print('Evaluate with Last Model')
 
     CPVAE_model.load_state_dict(torch.load(last_model_path))
-
     print(f"Starting ConcatenatedPredictiveVAE testing on train set...")
     accuracy, precision, recall, f1, auc, cr, pr_auc, gmean_macro,cm,fpr = CPVAE_model.evaluate(train_few_shot_loader, CPVAE_criterion,
                                                                             evaluation_on="train")
@@ -95,8 +94,6 @@ def main():
     print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
 
-
-    print("-" * 100)
     print('Evaluate with Best Model')
 
     CPVAE_model.load_state_dict(torch.load(best_model_path))
@@ -119,7 +116,6 @@ def main():
     print(
         f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
-
 
 if __name__ == '__main__':
     main()

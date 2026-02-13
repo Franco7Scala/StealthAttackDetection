@@ -22,6 +22,7 @@ def main():
     attack_type = args.attack_type
     batch_size = args.batch_size
     normalization = args.apply_normalization
+    k=1
 
     # 1. LOAD DATA
     # x_train_unsupervised serve per il VAE
@@ -69,7 +70,7 @@ def main():
         device=device,
         params=vars(args),
         random_noise=True, 
-        std=0.1
+        std=0.05
     )
 
   
@@ -82,7 +83,7 @@ def main():
 
     start = time.time()
     # Il metodo fit del CPVAE gestisce il bilanciamento e il congelamento internamente
-    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader, batch_size,best_model_path=best_model_path, last_model_path=last_model_path)
+    CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader, batch_size,k=k,best_model_path=best_model_path, last_model_path=last_model_path)
     end = time.time()
 
     print(f"\nTraining Ibrido completato in: {end - start:.2f} secondi")

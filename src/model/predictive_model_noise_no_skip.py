@@ -2,6 +2,9 @@ import torch
 import numpy as np
 import torch.nn as nn
 import os
+import random
+
+from torch.autograd import Variable
 from typing import Optional
 from tqdm import tqdm
 from matplotlib import pyplot as plt
@@ -11,11 +14,9 @@ from torch.utils.data import DataLoader
 from src.support.utils import get_base_dir
 
 
-
-
 class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device,params,random_noise=True, mean=0., std=1.):
+    def __init__(self, model1, model3, input_size, output_size, device, params, random_noise=True, mean=0., std=1.):
         super(ConcatenatedPredictiveVAE, self).__init__()
         self.params = params
         self.random_noise = random_noise
@@ -51,9 +52,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         x1 = self.model1.encode(x) #ff network
         _, x3, _ = self.model3.encode(x) #VAE network
-        x = torch.cat((x1, x3,x), dim=1)
+        features = torch.cat((x1, x3), dim=1)
         #x = x1 #
-        logits = self.fully_connected_1(x)
+        logits = self.fully_connected_1(features)
         return logits.flatten()
 
 # -----train and test-----#
@@ -119,7 +120,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
         x_neg = x_all[mask_neg].to(self.device)
         y_neg = y_all[mask_neg].to(self.device)
         n_pos = x_pos.size(0)
+        
         #current_batch_size = int((n_pos / min_budget) * batch_size)
+    
         #n_neg = current_batch_size - n_pos
         #n_batches = len(x_neg) // n_neg
 
@@ -129,18 +132,22 @@ class ConcatenatedPredictiveVAE(nn.Module):
         xb_pos = torch.cat([x_pos] * k, dim=0)
         yb_pos = torch.cat([y_pos] * k, dim=0)
 
+        
+            
+
         epoch_loss = 0.0
 
         for i in tqdm(range(n_batches)):
+
      
+            #xb_pos = x_pos
+            #yb_pos = y_pos
+            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
             xb_pos = torch.cat([x_pos] * k, dim=0)
             yb_pos = torch.cat([y_pos] * k, dim=0)
-            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
             if self.random_noise:
-
                 noise = torch.randn_like(xb_pos) * self.std + self.mean
                 xb_pos = xb_pos + noise
-    
 
             #idx_neg = torch.randperm(len(x_neg))[:n_neg]
             idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
@@ -149,6 +156,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
             # batch completo
             x_batch = torch.cat([xb_pos, xb_neg], dim=0)
+
             y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
     
             # shuffle batch
@@ -167,8 +175,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
-        #_, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
-        #print(f"Auc: {auc_}")
+        # _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
+        # print(f"Auc: {auc_}")
         return epoch_loss
 
 
@@ -266,19 +274,24 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
-    def fit(self, epochs, optimizer, criterion, train_loader,batch_size,k=1,best_model_path="", last_model_path="", test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader, batch_size,k=1, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
-        accuracy, precision, recall, f1 = 0, 0, 0, 0
+
         best_auprc = -np.inf
+
+        accuracy, precision, recall, f1 = 0, 0, 0, 0
         for epoch in tqdm(range(epochs)):
             avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             train_losses_per_epoch.append(avg_loss)
+
             _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)
             print(f"Auc: {auc_}, AUPRC: {pr_auc}")
+
             if pr_auc > best_auprc:
                 print('Save best model')
                 best_auprc = pr_auc
                 torch.save(self.state_dict(), best_model_path)
+
             if test_loader is not None:
                 accuracy, precision, recall, f1, auc_, cr, pr_auc, gmean_macro,cm,far = self.evaluate(test_loader, criterion)
 
@@ -287,6 +300,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
             print("Final results:")
             print(f"accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}, auc: {auc_}, pr_auc: {pr_auc}, gmean_macro: {gmean_macro}, confusion_mat: {cm}, FAR: {far}")
         self.plotLoss(train_losses_per_epoch)
+
         torch.save(self.state_dict(), last_model_path)
 
     def plotLoss(self, loss):
