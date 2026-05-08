@@ -24,5 +24,9 @@ def parse_arguments():
     parser.add_argument("--nc_out", type=int, default=4,
                         help="Number of neurons of the classifier for ARN Discriminator.")
     parser.add_argument("--n_epochs_cpvae", type=int, default=16, help="Number of epochs to train CPVAE Model.")
+    parser.add_argument("--n_epochs_siamese_net", type=int, default=25, help="Number of epochs to train Siamese Network Model.")
+    parser.add_argument("--n_epochs_classifier_net", type=int, default=16,
+                        help="Number of epochs to train Classifier Model (aka Head after Siamese Network).")
+    parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
 
     return parser.parse_args()
