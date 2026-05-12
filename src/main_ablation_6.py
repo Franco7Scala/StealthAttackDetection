@@ -3,7 +3,7 @@ import time
 import pickle
 import os
 import torch.nn as nn
-
+import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
 from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
@@ -11,6 +11,7 @@ from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import  Discriminator
 from src.Ablation_1.VAE import VAE
+
 
 def main():
     args = parse_arguments()
@@ -33,11 +34,11 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
-    k=1
+    std = 0.1
+    k=2
 
 
-    name_VAE_model = f'last_model_vae_abl.pth'
+    name_VAE_model = f'last_model_vae_abl_1.pth'
     name_MC_model = f'ARN_Discriminator_{attack_type}_0.ckpt'
 
     path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', name_VAE_model)
@@ -71,7 +72,7 @@ def main():
     CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader,batch_size,k=k,best_model_path=best_model_path, last_model_path=last_model_path)
     # -----CPVAE model training-----#
     end = time.time()
-
+    training_time_min = (end-start)/60
     print("ConcatenatedPredictiveVAE done!")
     print(f"Training time: {end - start:.2f} seconds")
 
@@ -94,6 +95,29 @@ def main():
     print("ConcatenatedPredictiveVAE test results:")
     print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
+    row = {
+    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+
+    "accuracy_last": accuracy,
+    "precision_last": precision,
+    "recall_last": recall,
+    "f1_last": f1,
+    "auc_last": auc,
+    "pr_auc_last": pr_auc,
+    "gmean_macro_last": gmean_macro,
+    "fpr_last": fpr,
+
+    "training_time": round(training_time_min, 3)
+}
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_6_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_last_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
 
 
     print("-" * 100)
@@ -119,6 +143,30 @@ def main():
     print(
         f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
+
+    row = {
+    "run_id": args.n_runs,   
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+    "accuracy": accuracy,
+    "precision": precision,
+    "recall": recall,
+    "f1": f1,
+    "auc": auc,
+    "pr_auc": pr_auc,
+    "gmean_macro": gmean_macro,
+    "fpr": fpr,
+    "training_time": round(training_time_min, 3)
+}
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_6_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_best_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
 
 
 if __name__ == '__main__':

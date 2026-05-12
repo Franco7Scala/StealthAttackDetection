@@ -4,7 +4,7 @@ import pickle
 import os
 import torch.nn as nn
 from torch.utils.data import DataLoader
-
+import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.siamese_net.trainer import SiameseTrainer
 from src.support.arguments import parse_arguments
@@ -32,6 +32,16 @@ def main():
     print(f"Running on {device}...")
 
     input_size = x_train_unsupervised.shape[1]
+    y_np = y_train_few_shot.numpy()
+
+    num_pos = (y_np == 1).sum()
+    num_neg = (y_np == 0).sum()
+    
+    pos_weight = torch.tensor(
+        num_neg / num_pos,
+        dtype=torch.float,
+        device=device
+    )
 
     siamese_model = SiameseNetwork(nc = input_size, embedding_dim=args.z_dim).to(device)
     siamese_optimizer = torch.optim.Adam(siamese_model.parameters(), lr=0.001)
@@ -52,16 +62,21 @@ def main():
     siamese_trainer.fit(train_dataset_siamese, train_loader_siamese, siamese_model_path, siamese_loss_path,
                         args.n_epochs_siamese_net)
     end = time.time()
-
+    training_time_min_siamese = (end-start)/60
     print("Siamese Network done!")
     print(f"Training time: {end - start:.2f} seconds")
 
     classifier = Classifier(embedding_dim=args.z_dim)
     classifier_optimizer = torch.optim.Adam(siamese_model.parameters(), lr=0.0001)
-    classifier_criterion = nn.BCEWithLogitsLoss()
+    
+    classifier_criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     print('Load embedder ...')
     siamese_model.load_state_dict(torch.load(siamese_model_path))
+ 
+
+
+    #classifier_optimizer = torch.optim.Adam(params, lr=0.0001)
     classifier_trainer = ClassifierTrainer(classifier, classifier_optimizer, classifier_criterion,
                                            siamese_model.embedder, params=vars(args), device=device)
 
@@ -69,7 +84,8 @@ def main():
     start = time.time()
     classifier_trainer.fit(train_few_shot_loader, classifier_path, classifier_loss_path, args.n_epochs_classifier_net)
     end = time.time()
-
+    training_time_class = (end-start)/60
+    training_time_total = training_time_min_siamese+training_time_class
     print("Classifier done!")
     print(f"Training time: {end - start:.2f} seconds")
 
@@ -99,6 +115,35 @@ def main():
     print("Classifier test results:")
     print(f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
+
+    row = {
+    "run_id": args.n_runs,   
+    "attack_type": args.attack_type,
+    "model": "siamese_classifier",
+
+    "accuracy_last": accuracy,
+    "precision_last": precision,
+    "recall_last": recall,
+    "f1_last": f1,
+    "auc_last": auc,
+    "pr_auc_last": pr_auc,
+    "gmean_macro_last": gmean_macro,
+    "fpr_last": fpr,
+
+    "training_time_siamese": round(training_time_min_siamese, 3),
+    "training_time_class": round(training_time_class, 3),
+    "training_time_total": round(training_time_total, 3)
+}
+
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_siamese_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_last_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
 
 
 

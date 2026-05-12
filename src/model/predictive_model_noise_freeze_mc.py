@@ -16,12 +16,13 @@ from src.support.utils import get_base_dir
 
 class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device, params,random_noise=True, mean=0., std=1.):
+    def __init__(self, model1, model3, input_size, output_size, device, params, random_noise=True, mean=0., std=1.):
         super(ConcatenatedPredictiveVAE, self).__init__()
         self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
+      
         self.device = device
         self.model1 = model1
         self.model3 = model3
@@ -52,7 +53,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         x1 = self.model1.encode(x) #ff network
         _, x3, _ = self.model3.encode(x) #VAE network
-        features = torch.cat((x1, x3), dim=1)
+        features = torch.cat((x1, x3, x), dim=1)
         #x = x1 #
         logits = self.fully_connected_1(features)
         return logits.flatten()
@@ -94,11 +95,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=1):
         self.train()
-        self.model1.train()
+        self.model1.eval()
         self.model3.eval()
         
         for param in self.model1.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         for param in self.model3.parameters():
             param.requires_grad = False

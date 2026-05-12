@@ -133,7 +133,7 @@ class AE_Trainer:
         print(f"Media FAR:       {np.mean(metrics_log['far']):.4f}")
         print("="*60)
 
-        return errors, y_true
+        return errors, y_true,{"accuracy":acc,"roc_auc":roc_auc,"pr_auc":pr_auc,"gmea":g_mean,"far":far,"precision":prec,"recall":rec,"f1":f1}
         
     def test_few_shot(self, test_loader, x_attack_few_shot):
         """
@@ -200,4 +200,73 @@ class AE_Trainer:
         print(classification_report(y_true, y_pred, target_names=['Benign', 'Attack'], digits=4))
         print("="*60)
 
-        return errors, y_true
+        return errors, y_true, {"accuracy":acc,"roc_auc":roc_auc,"pr_auc":pr_auc,"gmea":g_mean,"far":far,"precision":p,"recall":r,"f1":f1}
+
+
+
+    def test_few_shot_median(self, test_loader, x_attack_few_shot):
+        """
+        calcola la soglia basata sul minimo errore
+        di ricostruzione dei campioni di attacco forniti.
+        """
+        self.model.eval()
+        
+        # --- 1. Calcolo della Soglia Custom ---
+        print("\nCalcolo soglia basata sul minimo errore dei campioni di attacco...")
+        with torch.no_grad():
+            if not isinstance(x_attack_few_shot, torch.Tensor):
+                x_attack_few_shot = torch.tensor(x_attack_few_shot, dtype=torch.float32)
+            
+            x_attack_few_shot = x_attack_few_shot.to(self.device)
+            recon_atk = self.model(x_attack_few_shot)
+            # Calcoliamo l'errore per ogni sample di attacco
+            atk_errors = torch.mean((recon_atk - x_attack_few_shot)**2, dim=1)
+            
+            # La soglia è il valore minimo di errore tra gli attacchi conosciuti
+            custom_thresh = torch.median(atk_errors).item()
+            print(f"Soglia Min-Attack calcolata: {custom_thresh:.6f}")
+
+        # --- 2. Fase di Test ---
+        errors = []
+        all_labels = []
+        
+        with torch.no_grad():
+            for x, y in tqdm(test_loader, desc="Few-Shot Testing"):
+                x = x.to(self.device)
+                reconstruction = self.model(x)
+                loss = torch.mean((reconstruction - x)**2, dim=1)
+                errors.extend(loss.cpu().numpy())
+                all_labels.extend(y.cpu().numpy())
+        
+        errors = np.array(errors)
+        y_true = np.array(all_labels)
+        
+        # Classificazione binaria con la nuova soglia
+        y_pred = (errors > custom_thresh).astype(int)
+
+        # --- 3. Calcolo Metriche ---
+        roc_auc = roc_auc_score(y_true, errors)
+        # PR-AUC usando precision_recall_curve e auc
+        prec_pts, rec_pts, _ = precision_recall_curve(y_true, errors)
+        pr_auc = auc(rec_pts, prec_pts)
+
+        acc = accuracy_score(y_true, y_pred)
+        p, r, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro', zero_division=0)
+        
+        tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+        far = fp / (fp + tn) if (fp + tn) > 0 else 0
+        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0
+        tnr = tn / (tn + fp) if (tn + fp) > 0 else 0
+        g_mean = np.sqrt(tpr * tnr)
+
+        print("\n" + "="*60)
+        print(f" RISULTATI FEW-SHOT TEST (Soglia: {custom_thresh:.6f})")
+        print("="*60)
+        print(f"AUC-ROC:  {roc_auc:.4f} | PR-AUC:   {pr_auc:.4f}")
+        print(f"F1-Score: {f1:.4f} | G-Mean:   {g_mean:.4f}")
+        print(f"FAR:      {far:.4f} | Accuracy: {acc:.4f}")
+        print("\nClassification Report:")
+        print(classification_report(y_true, y_pred, target_names=['Benign', 'Attack'], digits=4))
+        print("="*60)
+
+        return errors, y_true,{"accuracy":acc,"roc_auc":roc_auc,"pr_auc":pr_auc,"gmea":g_mean,"far":far,"precision":p,"recall":r,"f1":f1}

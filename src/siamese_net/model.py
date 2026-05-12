@@ -57,9 +57,22 @@ class SiameseNetwork(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, embedding_dim=8):
+    def __init__(self, embedding_dim=8,n_classes=1):
         super().__init__()
+        self.embedding_dim = embedding_dim
 
+        
+
+        # Classification Head mutuato dalla SimpleMLP
+        #self.classifier = nn.Sequential(
+         #   nn.Linear(self.embedding_dim, self.embedding_dim//2),
+         #   nn.ReLU(),
+         #   nn.Linear(self.embedding_dim//2, n_classes) 
+       # )
+
+       # self.init_weights()
+
+        
         self.fc = nn.Linear(embedding_dim, 1)
 
         self.init_weights()
@@ -75,3 +88,5 @@ class Classifier(nn.Module):
 
     def forward(self, x):
         return self.fc(x).flatten()
+        #out = self.classifier(x)
+        #return out.flatten()

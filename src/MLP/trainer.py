@@ -33,7 +33,7 @@ class SupervisedTrainer:
             
         return total_loss / len(dataloader)
 
-    def fit(self, train_loader, epochs=50):
+    def fit(self, train_loader, epochs=1):
         print(f"Inizio Training Supervisionato (MLP)...")
         for epoch in range(1, epochs + 1):
             loss = self.train_one_epoch(train_loader, epoch)
@@ -68,7 +68,7 @@ class SupervisedTrainer:
     
             # 3. Altre Metriche (Soglia 0.5)
             acc = accuracy_score(y_true, y_pred)
-            prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='binary')
+            prec, rec, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
             
             tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
             far = fp / (fp + tn) if (fp + tn) > 0 else 0
@@ -86,4 +86,13 @@ class SupervisedTrainer:
             print(classification_report(y_true, y_pred, target_names=['Benign', 'Attack'], digits=4))
             print("="*60)
     
-            return probs, y_true
+            return {
+    "accuracy": acc,
+    "auc": roc_auc,
+    "pr_auc": pr_auc,
+    "f1": f1,
+    "precision": prec,
+    "recall": rec,
+    "gmean_macro": g_mean,
+    "fpr": far
+}

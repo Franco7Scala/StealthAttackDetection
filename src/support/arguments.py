@@ -14,7 +14,7 @@ def parse_arguments():
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size for the DataLoaders.")
     parser.add_argument("--z-dim", type=int, default=8, help="Latent code dimension for ARN Generator.")
     parser.add_argument("--nf-out", type=int, default=8, help="Number of neurons for ARN Generator.")
-    parser.add_argument("--n_runs", type=int, default=1, help="Number of experimental runs.")
+    parser.add_argument("--n_runs", type=int, default=0, help="Number of experimental runs.")
     parser.add_argument("--n_exps",type=str,default="freeze_discriminator_generator")
     parser.add_argument("--num_epochs", type=int, default=50, help="Number of epochs to train ARN.")
     parser.add_argument("--lr_D", type=float, default=0.0001, help="Learning rate for ARN Discriminator.")

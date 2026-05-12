@@ -4,9 +4,8 @@ import os
 import torch.nn as nn
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-
+import pandas as pd
 from src.support.utils import set_reproducibility, print_args
-
 from src.Ablation_1.Discriminator import Discriminator
 from src.Ablation_1.VAE import VAE, GeneratorLoss
 from src.Ablation_1.trainer import Trainer
@@ -29,7 +28,7 @@ def main():
     # x_train_few_shot serve per il modello ibrido
     x_train_unsupervised, x_train_few_shot, y_train_few_shot, x_test, y_test = load_dataset(args)
     
-    # Dataloader per il pre-training (solo dati normali/non supervisionati)
+    # Dataloader per il pre-training 
     train_unsupervised_loader, train_few_shot_loader, test_loader = get_dataloaders(
         x_train_unsupervised, x_train_few_shot, y_train_few_shot, x_test, y_test, args
     )
@@ -53,8 +52,8 @@ def main():
 
     vae_trainer.fit(train_unsupervised_loader, epochs=args.num_epochs) 
     
-    # Carichiamo l'ultimo modello salvato dal trainer per sicurezza
-    path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', 'last_model_vae_abl.pth')
+    # Carichiamo l'ultimo modello salvato dal trainer 
+    path_VAE_model = os.path.join(args.SAVE_FOLDER, 'models', 'last_model_vae_abl_1.pth')
     checkpoint_vae = torch.load(path_VAE_model)
     vae_model.load_state_dict(checkpoint_vae['model_state_dict'])
     print("Pre-training VAE completato e pesi caricati.")
@@ -71,12 +70,12 @@ def main():
     CPVAE_model = ConcatenatedPredictiveVAE(
         model1=MC_model, 
         model3=vae_model, 
-        input_size=(args.z_dim + args.nc_out), 
+        input_size=(args.z_dim + args.nc_out + input_size), 
         output_size=1, 
         device=device,
         params=vars(args),
         random_noise=True, 
-        std=0.05
+        std=0.1
     )
 
     # Ottimizzatore solo per le parti non congelate (Disc + Head)
@@ -91,8 +90,9 @@ def main():
     # Il metodo fit del CPVAE gestisce il bilanciamento e il congelamento internamente
     CPVAE_model.fit(args.n_epochs_cpvae, CPVAE_optimizer, CPVAE_criterion, train_few_shot_loader, batch_size,best_model_path=best_model_path, last_model_path=last_model_path)
     end = time.time()
-
+    training_time_min = (end-start)/60
     print(f"\nTraining Ibrido completato in: {end - start:.2f} secondi")
+    
 
     #EVALUATE LAST MODEL
     print('Evaluate with Last Model')
@@ -118,6 +118,30 @@ def main():
     print(f"gmean:       {gmean_macro:.4f}")
     print(f"Confusion Matrix:\n{cm}")
     print(cr)
+    row = {
+    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+    "accuracy_last": accuracy,
+    "precision_last": precision,
+    "recall_last": recall,
+    "f1_last": f1,
+    "auc_last": auc,
+    "pr_auc_last": pr_auc,
+    "gmean_macro_last": gmean_macro,
+    "fpr_last": fpr,
+    "training_time": round(training_time_min, 3)
+}
+
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_1_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_last_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
 
     print('Evaluate with Best Model')
 
@@ -141,6 +165,31 @@ def main():
     print(
         f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
+
+    row = {
+    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+    "accuracy_best": accuracy,
+    "precision_best": precision,
+    "recall_best": recall,
+    "f1_best": f1,
+    "auc_best": auc,
+    "pr_auc_last": pr_auc,
+    "gmean_macro_best": gmean_macro,
+    "fpr_best": fpr,
+    "training_time": round(training_time_min, 3)
+}
+
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_1_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_best_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
 
 if __name__ == '__main__':
     main()

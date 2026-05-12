@@ -36,10 +36,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
         self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
         self.save_folder = self.params['SAVE_FOLDER']
         self.n_exps = self.params['n_exps']
-        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.n_exps}')
-        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.n_exps}')
-        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.n_exps}')
-        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.n_exps}')
+        self.n_runs = self.params['n_runs']
+        self.loss_dir = os.path.join(self.save_folder, 'loss_model', f'loss_model_{self.attack_type}_{self.n_exps}_{self.n_runs}')
+        self.prc_dir  = os.path.join(self.save_folder, 'prc_model',  f'prc_model_{self.attack_type}_{self.n_exps}_{self.n_runs}')
+        self.auc_dir  = os.path.join(self.save_folder, 'auc_model',  f'auc_model_{self.attack_type}_{self.n_exps}_{self.n_runs}')
+        self.probs_csv_dir = os.path.join(self.save_folder, 'output_probs_model_csv', f'output_probs_{self.attack_type}_{self.n_exps}_{self.n_runs}')
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.auc_dir, exist_ok=True)
         os.makedirs(self.prc_dir, exist_ok=True)
@@ -91,7 +92,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return loss_sum / count
 
-    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=1):
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=2):
         self.train()
         self.model1.train()
         self.model3.eval()
@@ -169,6 +170,93 @@ class ConcatenatedPredictiveVAE(nn.Module):
         print(f"Epoch loss: {epoch_loss:.6f}")
         #_, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
         #print(f"Auc: {auc_}")
+        return epoch_loss
+        
+    def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=2):
+        self.train()
+        self.model1.train()
+        self.model3.eval()
+        
+        for param in self.model1.parameters():
+            param.requires_grad = True
+
+        for param in self.model3.parameters():
+            param.requires_grad = False
+    
+
+        x_all = []
+        y_all = []
+        for x, y in train_loader:
+            x_all.append(x)
+            y_all.append(y)
+        x_all = torch.cat(x_all, dim=0)
+        y_all = torch.cat(y_all, dim=0)
+    
+        # separa anomalie e normali
+        mask_pos = (y_all == 1)
+        mask_neg = (y_all == 0)
+        x_pos = x_all[mask_pos].to(self.device)
+        y_pos = y_all[mask_pos].to(self.device)
+        x_neg = x_all[mask_neg].to(self.device)
+        y_neg = y_all[mask_neg].to(self.device)
+        n_pos = x_pos.size(0)
+        
+        #current_batch_size = int((n_pos / min_budget) * batch_size)
+    
+        #n_neg = current_batch_size - n_pos
+        #n_batches = len(x_neg) // n_neg
+
+        current_batch_size = int(k*(n_pos / min_budget) * batch_size)
+        n_neg = current_batch_size - k*n_pos
+        n_batches = len(x_neg) // n_neg
+        xb_pos = torch.cat([x_pos] * k, dim=0)
+        yb_pos = torch.cat([y_pos] * k, dim=0)
+
+        
+            
+
+        epoch_loss = 0.0
+
+        for i in tqdm(range(n_batches)):
+
+     
+            #xb_pos = x_pos
+            #yb_pos = y_pos
+            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
+            xb_pos = torch.cat([x_pos] * k, dim=0)
+            yb_pos = torch.cat([y_pos] * k, dim=0)
+            if self.random_noise:
+                noise = torch.randn_like(xb_pos) * self.std + self.mean
+                xb_pos = xb_pos + noise
+
+            #idx_neg = torch.randperm(len(x_neg))[:n_neg]
+            idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
+            xb_neg = x_neg[idx_neg]
+            yb_neg = y_neg[idx_neg]
+    
+            # batch completo
+            x_batch = torch.cat([xb_pos, xb_neg], dim=0)
+
+            y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
+    
+            # shuffle batch
+            perm = torch.randperm(len(y_batch))
+            x_batch = x_batch[perm]
+            y_batch = y_batch[perm]
+    
+            # forward/backward
+            optimizer.zero_grad()
+            logits = self(x_batch)
+            loss = criterion(logits, y_batch)
+            loss.backward()
+            optimizer.step()
+    
+            epoch_loss += loss.item()
+    
+        epoch_loss /= n_batches
+        print(f"Epoch loss: {epoch_loss:.6f}")
+        # _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
+        # print(f"Auc: {auc_}")
         return epoch_loss
 
 

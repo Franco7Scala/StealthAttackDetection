@@ -6,11 +6,10 @@ import torch.nn as nn
 import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
+from src.model.predictive_model_noise_freeze_mc import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import Generator, Discriminator
-import json
 
 def main():
     args = parse_arguments()
@@ -31,9 +30,9 @@ def main():
 
     input_size = x_train_unsupervised.shape[1]
     output_size = 1
-    random_noise = True
+    random_noise = False
     mean = 0.0
-    std = 0.05
+    std = 0.1
     k=2
     n_runs = args.n_runs
 
@@ -99,7 +98,6 @@ def main():
     "run_id": args.n_runs,   # oppure args.run_id se lo usi così
     "attack_type": args.attack_type,
     "model": "CPVAE",
-
     "accuracy_last": accuracy,
     "precision_last": precision,
     "recall_last": recall,
@@ -112,7 +110,7 @@ def main():
     "training_time": round(training_time_min, 3)
 }
 
-    results_dir = os.path.join(args.SAVE_FOLDER, f"run_cpvae_{args.n_exps}", args.attack_type)
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_cpvae_freeze_mc_{args.n_exps}", args.attack_type)
     os.makedirs(results_dir, exist_ok=True)
 
     df = pd.DataFrame([row])
@@ -149,7 +147,6 @@ def main():
     "run_id": args.n_runs,   # oppure args.run_id se lo usi così
     "attack_type": args.attack_type,
     "model": "CPVAE",
-
     "accuracy_best": accuracy,
     "precision_best": precision,
     "recall_best": recall,
@@ -162,7 +159,7 @@ def main():
     "training_time": round(training_time_min, 3)
 }
 
-    results_dir = os.path.join(args.SAVE_FOLDER, f"run_cpvae_{args.n_exps}", args.attack_type)
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_cpvae_freeze_mc_{args.n_exps}", args.attack_type)
     os.makedirs(results_dir, exist_ok=True)
 
     df = pd.DataFrame([row])

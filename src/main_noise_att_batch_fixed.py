@@ -6,7 +6,7 @@ import torch.nn as nn
 import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
-from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
+from src.model.predictive_model_noise_batch_fixed import ConcatenatedPredictiveVAE
 from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import Generator, Discriminator
@@ -34,7 +34,7 @@ def main():
     random_noise = True
     mean = 0.0
     std = 0.05
-    k=2
+    k=1
     n_runs = args.n_runs
 
     name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'

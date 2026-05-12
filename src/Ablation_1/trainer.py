@@ -60,7 +60,7 @@ class Trainer:
             })
 
             # Salvataggio dell'ultimo modello (sovrascrive)
-            checkpoint_path = os.path.join(self.save_path, "last_model_vae_abl.pth")
+            checkpoint_path = os.path.join(self.save_path, "last_model_vae_abl_1.pth")
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': self.model.state_dict(),

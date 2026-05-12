@@ -31,14 +31,22 @@ def _split_dataframe(dataset, args):
     dataset.fillna(dataset.mean(), inplace=True)
     df_normal = dataset[dataset["attack"] == 0]
     df_attack = dataset[dataset["attack"] == 1]
-
     df_normal_train = df_normal.sample(frac=args.train_normal_ratio, random_state=args.seed)
     df_normal_test = df_normal.drop(df_normal_train.index)
 
     df_attack_budget = df_attack.sample(n=args.b_max, random_state=args.seed)
     df_attack_test = df_attack.drop(df_attack_budget.index)
-
-    df_attack_train = df_attack_budget[:args.n_train_attacks]
+    start = args.n_runs * args.n_train_attacks
+    end = start + args.n_train_attacks
+    if args.attack_type.lower() == "cobalt":
+        
+        df_attack_sorted = df_attack_budget.sort_values(
+        by=["sending_bytes", "numerical_percentage"],
+        ascending=[True, True]
+    ).reset_index(drop=True)
+        df_attack_train = df_attack_sorted.iloc[start:end]
+    else:
+        df_attack_train = df_attack_budget[start:end]
 
     df_test = pd.concat([df_normal_test, df_attack_test]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
 

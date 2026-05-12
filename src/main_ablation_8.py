@@ -3,7 +3,7 @@ import time
 import pickle
 import os
 import torch.nn as nn
-
+import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
 from src.Ablation_8.model_ablation_8 import model
@@ -30,8 +30,8 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
-    k=1
+    std = 0.1
+    k=2
 
     CPVAE_model = model(input_size, args.nc_out+args.nf_out, output_size, device, params=vars(args),
                         random_noise=random_noise, mean=mean, std=std)
@@ -52,7 +52,7 @@ def main():
                     best_model_path=best_model_path, last_model_path=last_model_path)
     # -----CPVAE model training-----#
     end = time.time()
-
+    training_time_min = (end-start)/60
     print("ConcatenatedPredictiveVAE done!")
     print(f"Training time: {end - start:.2f} seconds")
 
@@ -81,6 +81,33 @@ def main():
 
     print("-" * 100)
 
+    row = {
+    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+
+    "accuracy_last": accuracy,
+    "precision_last": precision,
+    "recall_last": recall,
+    "f1_last": f1,
+    "auc_last": auc,
+    "pr_auc_last": pr_auc,
+    "gmean_macro_last": gmean_macro,
+    "fpr_last": fpr,
+
+    "training_time": round(training_time_min, 3)
+}
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_8_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_last_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
+
+
     print('Evaluate with Best Model')
 
     CPVAE_model.load_state_dict(torch.load(best_model_path))
@@ -103,7 +130,29 @@ def main():
     print(
         f"accuracy: {accuracy}\nprecision: {precision}\nrecall: {recall}\nf1: {f1}\nauc: {auc}\npr_auc: {pr_auc} \n gmean_macro: {gmean_macro} \n Confusion Mat: {cm} \n FAR: {fpr}")
     print(cr)
+    row = {
+    "run_id": args.n_runs,   
+    "attack_type": args.attack_type,
+    "model": "CPVAE",
+    "accuracy": accuracy,
+    "precision": precision,
+    "recall": recall,
+    "f1": f1,
+    "auc": auc,
+    "pr_auc": pr_auc,
+    "gmean_macro": gmean_macro,
+    "fpr": fpr,
+    "training_time": round(training_time_min, 3)
+}
+    results_dir = os.path.join(args.SAVE_FOLDER, f"run_ablation_8_{args.n_exps}", args.attack_type)
+    os.makedirs(results_dir, exist_ok=True)
 
+    df = pd.DataFrame([row])
+
+    save_path = os.path.join(results_dir, f"run_best_model_{args.n_runs}.csv")
+    df.to_csv(save_path, index=False)
+
+    print(f"Saved results to: {save_path}")
 
 if __name__ == '__main__':
     main()
