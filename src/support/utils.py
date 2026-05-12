@@ -4,6 +4,8 @@ import numpy as np
 import os
 import pandas as pd
 import json
+import numpy as np
+import re
 
 def get_base_dir():
     return "/home/jovyan/StealthAttackDetection"
@@ -116,11 +118,6 @@ def aggregate_runs(base_dir, attack_type, keyword=None):
 
 
 
-
-import os
-import json
-import numpy as np
-import re
 
 def compute_pr_auc_stats(
     root_dir,
