@@ -146,7 +146,7 @@ def compute_pr_auc_stats(
         if not os.path.isdir(run_path):
             continue
 
-        # 🔥 filtro su parte comune del nome
+    
         if not pattern.search(run_dir):
             continue
 
