@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 
 
 class DynamicPairDataset(Dataset):
-    def __init__(self, x, y, normal_samples_per_epoch=10):
+    def __init__(self, x, y, normal_samples_per_epoch=5):
 
         self.x = x
         self.y = y
@@ -30,6 +30,13 @@ class DynamicPairDataset(Dataset):
                     continue
 
                 self.pairs.append((anchor_idx, other_anomaly_idx, 1.0))
+                
+        for i, anchor_idx in enumerate(sampled_normals):
+            for other_normal_idx in sampled_normals[i + 1:]:
+                
+                if anchor_idx == other_normal_idx:
+                    continue
+                    self.pairs.append((anchor_idx, other_normal_idx, 1.0))
 
         for anchor_idx in self.anomaly_idx:
             for normal_idx in sampled_normals:

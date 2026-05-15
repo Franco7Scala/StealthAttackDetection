@@ -21,14 +21,15 @@ class SiameseTrainer:
 
         for x1, x2, y in pbar:
             x1, x2, y = x1.to(self.device), x2.to(self.device), y.to(self.device).float()
-
+            y = y * 2 - 1   # da eliminare
             self.optimizer.zero_grad()
             z1, z2 = self.model(x1, x2)
 
-            distance = F.pairwise_distance(z1, z2)
-            scores = torch.exp(-distance)
+            #distance = F.pairwise_distance(z1, z2)  
+            #scores = torch.exp(-distance)
 
-            loss = self.criterion(scores, y)
+            #loss = self.criterion(scores, y)
+            loss = self.criterion(z1, z2, y)
             loss.backward()
             self.optimizer.step()
 
@@ -37,13 +38,19 @@ class SiameseTrainer:
 
         return total_loss / len(dataloader)
 
-    def fit(self, train_dataset, train_loader, last_model_path, loss_path, epochs=50):
+    def fit(self, train_dataset, train_loader, last_model_path,best_model_path, loss_path, epochs=50):
         losses = []
+        best_loss = float("inf")
+
         for epoch in range(1, epochs + 1):
             train_dataset.resample_pairs()
             loss = self.train_one_epoch(train_loader, epoch)
             losses.append(loss)
             print(f"Epoch {epoch}/{epochs} - Loss: {loss:.6f}")
+            if loss < best_loss:
+                best_loss = loss
+                torch.save(self.model.state_dict(), best_model_path)
+                print(f"  → New best model saved (loss {best_loss:.6f})")
 
         torch.save(self.model.state_dict(), last_model_path)
         self.plotLoss(losses, loss_path)

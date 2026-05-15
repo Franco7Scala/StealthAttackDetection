@@ -45,11 +45,13 @@ def main():
 
     siamese_model = SiameseNetwork(nc = input_size, embedding_dim=args.z_dim).to(device)
     siamese_optimizer = torch.optim.Adam(siamese_model.parameters(), lr=0.001)
-    siamese_criterion = nn.BCELoss()
+    #siamese_criterion = nn.BCELoss()
+    siamese_criterion = nn.CosineEmbeddingLoss(margin=0.5)
 
     siamese_folder = os.path.join(args.SAVE_FOLDER, 'siamese_network')
     os.makedirs(siamese_folder, exist_ok=True)
     siamese_model_path = os.path.join(args.SAVE_FOLDER, 'siamese_network', f'last_siamese_network_{args.attack_type}_{args.n_exps}.pt')
+    siamese_best_model_path = os.path.join(args.SAVE_FOLDER, 'siamese_network', f'best_siamese_network_{args.attack_type}_{args.n_exps}.pt')
     siamese_loss_path = os.path.join(args.SAVE_FOLDER, 'siamese_network', f'siamese_losses_{args.attack_type}_{args.n_exps}.pdf')
 
     classifier_path = os.path.join(args.SAVE_FOLDER, 'siamese_network', f'last_classifier_{args.attack_type}_{args.n_exps}.pt')
@@ -59,7 +61,7 @@ def main():
 
     print(f"Starting {attack_type} Siamese Network model training...")
     start = time.time()
-    siamese_trainer.fit(train_dataset_siamese, train_loader_siamese, siamese_model_path, siamese_loss_path,
+    siamese_trainer.fit(train_dataset_siamese, train_loader_siamese, siamese_model_path,siamese_best_model_path, siamese_loss_path,
                         args.n_epochs_siamese_net)
     end = time.time()
     training_time_min_siamese = (end-start)/60
@@ -73,6 +75,7 @@ def main():
 
     print('Load embedder ...')
     siamese_model.load_state_dict(torch.load(siamese_model_path))
+
  
 
 

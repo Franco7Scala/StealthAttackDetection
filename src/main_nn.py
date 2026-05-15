@@ -7,6 +7,16 @@ import argparse
 import torch
 import os
 from src.support.arguments import parse_arguments
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+    average_precision_score
+)
+
+import numpy as np
+
+
 
 def run(params, args):
     n_runs = params['n_runs']
@@ -17,7 +27,7 @@ def run(params, args):
 
     for i in range(n_runs):
         print(f'\n=== Iteration {i} ===')
-        current_seed = seed * (i + 1)
+        current_seed = seed
 
         torch.manual_seed(current_seed)
         torch.cuda.manual_seed_all(current_seed)
@@ -76,7 +86,7 @@ def run(params, args):
         optimizer = torch.optim.Adam(model.parameters(), lr=params['lr_D'])
         #criterion = FocalLoss(alpha=1.0, gamma=2.0, reduction='mean')
         #criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight.to(device))
-        criterion = torch.nn.BCEWithLogitsLoss()
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         
         trainer = Trainer(model=model, optimizer=optimizer, criterion=criterion, device=device)
@@ -84,16 +94,16 @@ def run(params, args):
         # ----------------------------
         # Training
         # ----------------------------
-        #trainer.train(train_loader, epochs=num_epochs, verbose=True)
-        trainer.train_balanced(
-            x_pos=x_class1.to(device),
-            y_pos=y_class1.to(device).float(),
-            x_neg=x_class0.to(device),
-            y_neg=y_class0.to(device).float(),
-            epochs=num_epochs,
-            batch_size=batch_size,
-            n_pos=5  # sempre 5 anomalie per batch
-        )
+        trainer.train(train_loader, epochs=num_epochs, verbose=True)
+        #trainer.train(
+        #    x_pos=x_class1.to(device),
+        #    y_pos=y_class1.to(device).float(),
+        #    x_neg=x_class0.to(device),
+        #    y_neg=y_class0.to(device).float(),
+        #    epochs=num_epochs,
+        #    batch_size=batch_size,
+        #    n_pos=5  # sempre 5 anomalie per batch
+       # )
 
         # ----------------------------
         # Test / Evaluation
@@ -101,6 +111,55 @@ def run(params, args):
         print("\n--- Test ---")
         test_loss, Auc, pr_auc,gmean_macro = trainer.test(test_loader)
         print(f"Iteration {i} - Test Loss: {test_loss:.6f}, AUC: {Auc:.6f}, PR_AUC: {pr_auc:.6f}, Gmean: {gmean_macro:.6f}")
+        model.eval()
+
+        all_preds = []
+        all_probs = []
+        all_labels = []
+
+        with torch.no_grad():
+
+            for x_batch, y_batch in test_loader:
+
+                x_batch = x_batch.to(device)
+                y_batch = y_batch.to(device)
+
+                logits = model(x_batch)
+
+                # sigmoid -> probabilities
+                probs = torch.sigmoid(logits)
+
+                # threshold 0.5
+                preds = (probs >= 0.5).float()
+
+                all_probs.extend(probs.cpu().numpy().flatten())
+                all_preds.extend(preds.cpu().numpy().flatten())
+                all_labels.extend(y_batch.cpu().numpy().flatten())
+
+        all_probs = np.array(all_probs)
+        all_preds = np.array(all_preds)
+        all_labels = np.array(all_labels)
+
+        print("\n=== Classification Report ===")
+
+        print(
+            classification_report(
+                all_labels,
+                all_preds,
+                digits=4
+            )
+        )
+
+        print("=== Confusion Matrix ===")
+        print(confusion_matrix(all_labels, all_preds))
+
+        # metriche aggiuntive
+        auc_score = roc_auc_score(all_labels, all_probs)
+        pr_auc_score = average_precision_score(all_labels, all_probs)
+
+        print(f"\nROC-AUC: {auc_score:.6f}")
+        print(f"PR-AUC : {pr_auc_score:.6f}")
+
 
 
 
@@ -111,21 +170,17 @@ def main():
 
     params = vars(args)
 
-    seed = params['seed']
+    device = torch.device(
+        'cuda' if torch.cuda.is_available() else 'cpu'
+    )
 
-
-    device = torch.device('cuda' if (torch.cuda.is_available()) else 'cpu')
     print(f'Device: {device}')
-    
 
     params['device'] = device
     params['seed'] = 42
-
-    #x_train_unsupervised, _, _, _, _ = load_dataset(args)
-
+    print("CALLING RUN")
 
     run(params, args)
-
 
 
 if __name__ == '__main__':

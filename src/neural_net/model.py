@@ -60,8 +60,17 @@ class SimpleDiscriminator(nn.Module):
             nn.BatchNorm1d(self.nc_out),
             nn.Dropout(0.05),
             nn.ReLU(),
+            
         )
 
+        self.mlp = nn.Sequential(
+            nn.Linear(self.nc_out, self.nc_out),
+            nn.BatchNorm1d(self.nc_out),
+            nn.ReLU(),
+
+        )
+
+        
 
         
         self.fc2 = nn.Sequential(
@@ -96,6 +105,7 @@ class SimpleDiscriminator(nn.Module):
         #x = x + noise
         x = self.feature_extractor(x)
         x = self.fc1(x)
+        x= self.mlp(x)
         x = self.fc2(x)
         return x.flatten()
 

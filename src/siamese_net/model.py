@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Embedder(nn.Module):
-    def __init__(self, nc=16, embedding_dim=8):
+    def __init__(self, nc=16, embedding_dim=12):
         super().__init__()
 
         self.nc = nc
@@ -23,6 +23,7 @@ class Embedder(nn.Module):
             nn.ReLU(),
 
             nn.Linear(self.embedding_dim, self.embedding_dim)
+
         )
 
         self.init_weights()
@@ -42,7 +43,7 @@ class Embedder(nn.Module):
 
 
 class SiameseNetwork(nn.Module):
-    def __init__(self, nc=16, embedding_dim=8):
+    def __init__(self, nc=16, embedding_dim=12):
         super().__init__()
         self.nc = nc
         self.embedding_dim = embedding_dim
@@ -52,12 +53,13 @@ class SiameseNetwork(nn.Module):
     def forward(self, x1, x2):
         z1 = self.embedder(x1)
         z2 = self.embedder(x2)
-
+        #z1 = F.normalize(z1, p=2, dim=1)
+        #z2 = F.normalize(z2, p=2, dim=1)
         return z1, z2
 
 
 class Classifier(nn.Module):
-    def __init__(self, embedding_dim=8,n_classes=1):
+    def __init__(self, embedding_dim=12,n_classes=1):
         super().__init__()
         self.embedding_dim = embedding_dim
 
@@ -65,10 +67,14 @@ class Classifier(nn.Module):
 
         # Classification Head mutuato dalla SimpleMLP
         #self.classifier = nn.Sequential(
-         #   nn.Linear(self.embedding_dim, self.embedding_dim//2),
+         #   nn.Linear(self.embedding_dim, self.embedding_dim),
          #   nn.ReLU(),
-         #   nn.Linear(self.embedding_dim//2, n_classes) 
-       # )
+         #   nn.Linear(4*self.embedding_dim, 2*self.embedding_dim),
+         #   nn.ReLU(),
+         #   nn.Linear(2*self.embedding_dim, self.embedding_dim),
+         #   nn.ReLU(),
+            #nn.Linear(self.embedding_dim, n_classes) 
+        #)
 
        # self.init_weights()
 
