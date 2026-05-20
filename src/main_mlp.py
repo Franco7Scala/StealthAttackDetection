@@ -54,8 +54,8 @@ def main():
     # 4. Optimizer & Criterion
     # Per la classificazione binaria con logits si usa BCEWithLogitsLoss
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_D)
-    #criterion = FocalLoss(alpha=0.5, gamma=64, reduction='mean')
-    criterion = torch.nn.BCEWithLogitsLoss(pos_weight = pos_weight)
+    criterion = FocalLoss(alpha=2, gamma=2, reduction='mean')
+    #criterion = torch.nn.BCEWithLogitsLoss(pos_weight = pos_weight)
     
     trainer = SupervisedTrainer(
         model=model, 

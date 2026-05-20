@@ -448,8 +448,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         metrics_path = os.path.join(self.prc_dir, "prc_metrics_train.json")
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
-            #avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            #avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             train_losses_per_epoch.append(avg_loss)
 
             _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)

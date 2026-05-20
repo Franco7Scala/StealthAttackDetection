@@ -11,6 +11,7 @@ from src.support.focal_loss import FocalLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import Generator, Discriminator
 import json
+from src.support.twersky_loss import TverskyLoss
 
 def main():
     args = parse_arguments()
@@ -33,8 +34,8 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
-    k=1
+    std = 0.1
+    k=2
     n_runs = args.n_runs
 
     name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
@@ -59,6 +60,7 @@ def main():
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
     #CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
+    #CPVAE_criterion = TverskyLoss()
 
     our_model_folder = os.path.join(args.SAVE_FOLDER, 'our_models')
     os.makedirs(our_model_folder, exist_ok=True)

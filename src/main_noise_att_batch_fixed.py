@@ -33,8 +33,8 @@ def main():
     output_size = 1
     random_noise = True
     mean = 0.0
-    std = 0.05
-    k=1
+    std = 0.1
+    k=2
     n_runs = args.n_runs
 
     name_VAE_model = f'ARN_Generator_{attack_type}_0.ckpt'
