@@ -22,16 +22,14 @@ class model(nn.Module):
         self.std = std
 
         self.device = device
-        #self.fc = nn.Sequential(
-         #   nn.Linear(n_features, input_size),
-         #   nn.ReLU()
-       # )
+        self.fc = nn.Sequential(
+            nn.Linear(n_features, 12),
+            nn.ReLU()
+        )
         self.fully_connected_1 = nn.Sequential(
-            nn.Linear(n_features, input_size),
+            nn.Linear(n_features+12, 12),
             nn.ReLU(),
-            nn.Linear(input_size, input_size),
-            nn.ReLU(),
-            nn.Linear(input_size, output_size),
+            nn.Linear(12, output_size)
         )
         self.to(self.device)
         self.attack_type = self.params['attack_type']
@@ -53,6 +51,9 @@ class model(nn.Module):
          #   x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
         #x = self.fc(x)
+        out_fc = self.fc(x)          # [batch_size, 12]
+
+        x = torch.cat((x, out_fc), dim=1)
         logits = self.fully_connected_1(x)
         return logits.flatten()
 

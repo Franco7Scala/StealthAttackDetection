@@ -6,7 +6,7 @@ import torch
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.arn.trainer import ARN
-
+import time
 from src.arn.utils import load_arn_models, get_auc, get_auprc, predict
 from src.support.arguments import parse_arguments
 from src.support.utils import set_reproducibility, print_args
@@ -17,8 +17,8 @@ def run(params, args):
     attack_type = params['attack_type']
 
     n_runs = params['n_runs']
-    auc_dir = os.path.join(params['SAVE_FOLDER'], 'auc_arn', f'auc_arn_{attack_type}')
-    prc_dir = os.path.join(params['SAVE_FOLDER'], 'prc_arn', f'prc_arn_{attack_type}')
+    auc_dir = os.path.join(params['SAVE_FOLDER'], 'auc_arn', f'auc_arn_{attack_type}_new')
+    prc_dir = os.path.join(params['SAVE_FOLDER'], 'prc_arn', f'prc_arn_{attack_type}_new')
     if 'start_runs'  in params:
         start_runs = params['start_runs']
     else:
@@ -38,23 +38,25 @@ def run(params, args):
 
         model = ARN(params)
 
-        name_G = f'ARN_Generator_{attack_type}_{i}.ckpt'
-        name_D = f'ARN_Discriminator_{attack_type}_{i}.ckpt'
+        name_G = f'ARN_Generator_{attack_type}_{i}_new.ckpt'
+        name_D = f'ARN_Discriminator_{attack_type}_{i}_new.ckpt'
 
         path_G = os.path.join(params['SAVE_FOLDER'], 'models', name_G)
         path_D = os.path.join(params['SAVE_FOLDER'], 'models', name_D)
 
-        name_G = f'ARN_Generator_{attack_type}_{i}_best.ckpt'
-        name_D = f'ARN_Discriminator_{attack_type}_{i}_best.ckpt'
+        name_G = f'ARN_Generator_{attack_type}_{i}_best_new.ckpt'
+        name_D = f'ARN_Discriminator_{attack_type}_{i}_best_new.ckpt'
 
         path_best_G = os.path.join(params['SAVE_FOLDER'], 'models', name_G)
         path_best_D = os.path.join(params['SAVE_FOLDER'], 'models', name_D)
 
         ### Training ###
-
+        start_time = time.time()
         _ = model.train(train_loader, path_G, path_D, batch_size=params['batch_size'],
                         num_epochs=params['num_epochs'], num_q_steps=5,
                         path_best_G=path_best_G, path_best_D=path_best_D)
+        end_time = time.time()
+        print((end_time-start_time)/60)
 
         ### Evaluation ###
         print('Evaluate Best Model')

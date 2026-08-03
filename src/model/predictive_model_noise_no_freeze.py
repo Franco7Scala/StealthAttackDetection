@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, classification_report, roc_auc_score, precision_recall_curve, auc,roc_curve,confusion_matrix
 from torch.utils.data import DataLoader
 
+
 from src.support.utils import get_base_dir
 
 
@@ -140,9 +141,6 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         x_neg = x_all[mask_neg].to(self.device)
         y_neg = y_all[mask_neg].to(self.device)
-
-        x_pos = torch.cat([x_pos[:5], x_pos[-5:]], dim=0).to(self.device)
-        y_pos = torch.cat([y_pos[:5], y_pos[-5:]], dim=0).to(self.device)
     
         n_pos = len(x_pos)
         n_neg_total = len(x_neg)
@@ -265,13 +263,13 @@ class ConcatenatedPredictiveVAE(nn.Module):
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=1):
         self.train()
         self.model1.train()
-        self.model3.eval()
+        self.model3.train()
         
         for param in self.model1.parameters():
             param.requires_grad = True
 
         for param in self.model3.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
     
 
         x_all = []
@@ -451,8 +449,9 @@ class ConcatenatedPredictiveVAE(nn.Module):
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         metrics_path = os.path.join(self.prc_dir, "prc_metrics_train.json")
         for epoch in tqdm(range(epochs)):
-            #avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
-            avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            
+            #avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             train_losses_per_epoch.append(avg_loss)
 
             _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)

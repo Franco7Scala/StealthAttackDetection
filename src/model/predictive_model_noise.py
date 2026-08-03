@@ -17,13 +17,13 @@ from src.support.utils import get_base_dir
 
 class ConcatenatedPredictiveVAE(nn.Module):
 
-    def __init__(self, model1, model3, input_size, output_size, device, params, random_noise=True, mean=0., std=1.):
+    def __init__(self, model1, model3, input_size, output_size, device, params,balanced=False, random_noise=True, mean=0., std=1.):
         super(ConcatenatedPredictiveVAE, self).__init__()
         self.params = params
         self.random_noise = random_noise
         self.mean = mean
         self.std = std
-      
+        self.balanced = balanced
         self.device = device
         self.model1 = model1
         self.model3 = model3
@@ -89,8 +89,8 @@ class ConcatenatedPredictiveVAE(nn.Module):
             loss_sum += loss.item()
             count += 1
 
-        _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
-        print(f"Auc: {auc_}")
+       # _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
+       # print(f"Auc: {auc_}")
 
         return loss_sum / count
 
@@ -442,14 +442,18 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         return accuracy_am.avg, precision_am.avg, recall_am.avg, f1_am.avg, auc_, cr, pr_auc, gmean_macro,cm,far
 
-    def fit(self, epochs, optimizer, criterion, train_loader, batch_size,k=1, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
+    def fit(self, epochs, optimizer, criterion, train_loader, batch_size,balanced,k=1, best_model_path= "", last_model_path="", test_loader: Optional[DataLoader] = None):
         train_losses_per_epoch = []
 
         best_auprc = -np.inf
         accuracy, precision, recall, f1 = 0, 0, 0, 0
         metrics_path = os.path.join(self.prc_dir, "prc_metrics_train.json")
         for epoch in tqdm(range(epochs)):
-            avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            if balanced:
+                avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+            else:
+                avg_loss = self._train_epoch(train_loader, optimizer, criterion)
+            #avg_loss = self._train_epoch(train_loader, optimizer, criterion)
             #avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             train_losses_per_epoch.append(avg_loss)
 

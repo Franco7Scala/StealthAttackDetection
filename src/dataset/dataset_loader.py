@@ -48,6 +48,23 @@ def _split_dataframe(dataset, args):
     else:
         df_attack_train = df_attack_budget[start:end]
 
+    #df_test = pd.concat([df_normal_test, df_attack_test]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
+    if args.attack_sample == True:
+        
+        
+        # Ordiniamo l'intero dataframe di test combinato
+        df_attack_test  = df_attack_test.sort_values(
+            by=["sending_bytes", "numerical_percentage"],
+            ascending=[True, True]
+        ).reset_index(drop=True)
+        
+        
+       
+        n_samples = max(1, int(len(df_attack_test) * 0.05))
+        
+        
+        df_attack_test = df_attack_test.iloc[:n_samples]
+
     df_test = pd.concat([df_normal_test, df_attack_test]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
 
     x_test = df_test.drop(columns=["attack"])

@@ -15,9 +15,9 @@ def load_covert_dataframe():
                            '25_percentil_ttl_ws', '75_percentil_ttl_ws', '90_percentil_ttl_ws', 'max_ttl_ws',
                            'min_ttl_ws', 'attack']
 
-    paths_raw_files = [f"{get_base_dir()}/dataset/stego/PreprocessedStegoDataset-TRAINING.csv",
-                       f"{get_base_dir()}/dataset/stego/PreprocessedStegoDataset-TEST.csv"]
-    path_processed_dataset = f"{get_base_dir()}/dataset/stego/processed_dataset.pkl"
+    paths_raw_files = [f"{get_base_dir()}/dataset/PreprocessedStegoDataset-TRAINING.csv",
+                       f"{get_base_dir()}/dataset/PreprocessedStegoDataset-TEST.csv"]
+    path_processed_dataset = f"{get_base_dir()}/dataset/processed_dataset_stego.pkl"
 
     if os.path.isfile(path_processed_dataset):
         return pickle.load(open(path_processed_dataset, "rb"))

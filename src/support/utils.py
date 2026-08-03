@@ -8,7 +8,7 @@ import numpy as np
 import re
 
 def get_base_dir():
-    return "/home/jovyan/StealthAttackDetection"
+    return "/home/icar/StealthAttackDetection"
 
 
 def set_reproducibility(seed):

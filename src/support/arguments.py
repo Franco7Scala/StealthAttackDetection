@@ -11,6 +11,8 @@ def parse_arguments():
     parser.add_argument("--b-max", type=int, default=80, help="Maximum fraction of attack data to consider for the budget.")
     parser.add_argument("--n-train-attacks", type=int, default=5, help="Number of attack samples to include in the few-shot training set.")
     parser.add_argument("--apply-normalization", type=str2bool, default=False, help="Enable data normalization.")
+    parser.add_argument("--attack-sample", type=str2bool, default=False, help="Enable sample data.")
+    parser.add_argument("--balanced-training", type=str2bool, default=True, help="Enable balancing.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size for the DataLoaders.")
     parser.add_argument("--z-dim", type=int, default=8, help="Latent code dimension for ARN Generator.")
     parser.add_argument("--nf-out", type=int, default=8, help="Number of neurons for ARN Generator.")

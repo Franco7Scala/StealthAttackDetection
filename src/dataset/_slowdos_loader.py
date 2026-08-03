@@ -27,8 +27,8 @@ def _class_string2int(dataFrames: list[pandas.DataFrame], labels: list[str]) -> 
 
 
 def load_slowdos_dataframe() -> pandas.DataFrame:
-    paths_raw_files = [f"{get_base_dir()}/datasets/cicids/Wednesday-workingHours.pcap_ISCX.csv", f"{get_base_dir()}/datasets/cicids/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv"]
-    path_processed_dataset = f"{get_base_dir()}/datasets/cicids/processed_dataset.pkl"
+    paths_raw_files = [f"{get_base_dir()}/dataset/Wednesday-workingHours.pcap_ISCX.csv", f"{get_base_dir()}/dataset/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv"]
+    path_processed_dataset = f"{get_base_dir()}/dataset/processed_dataset.pkl"
 
     if os.path.isfile(path_processed_dataset):
         return pickle.load(open(path_processed_dataset, "rb"))
