@@ -1,1 +1,0 @@
-Modello senza gli estrattori (encoder/backbone supervisionata)
