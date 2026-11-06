@@ -6,14 +6,14 @@ def normalize_values(dataFrame: pd.DataFrame) -> pd.DataFrame:
     ret = dataFrame
     for column in ret.columns:
         if column not in [" Label", "target", "Attack Type","label"]:
-            ret[column] = ret[column].replace(np.inf, 0) #replace inf with zero
+            ret[column] = ret[column].replace(np.inf, 0) 
             for value in ret[column].unique():
                 if value < 0:
-                    ret[column] = ret[column].replace(value, 0) #replace negatives with zero
+                    ret[column] = ret[column].replace(value, 0) 
 
             mean_value = ret[column].mean(axis=0)
-            ret[column] = ret[column].replace(0, mean_value) #replace 0 with mean value of the column
-            ret[column] = ret[column].fillna(mean_value) #replace na with mean value of the column
+            ret[column] = ret[column].replace(0, mean_value) 
+            ret[column] = ret[column].fillna(mean_value) 
 
     return ret
 

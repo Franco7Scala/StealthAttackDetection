@@ -48,11 +48,11 @@ def _split_dataframe(dataset, args):
     else:
         df_attack_train = df_attack_budget[start:end]
 
-    #df_test = pd.concat([df_normal_test, df_attack_test]).sample(frac=1, random_state=args.seed).reset_index(drop=True)
+    
     if args.attack_sample == True:
         
         
-        # Ordiniamo l'intero dataframe di test combinato
+        
         df_attack_test  = df_attack_test.sort_values(
             by=["sending_bytes", "numerical_percentage"],
             ascending=[True, True]
@@ -86,8 +86,7 @@ def _split_dataframe(dataset, args):
     y_train_few_shot = torch.tensor(y_train_few_shot.to_numpy()).float()
 
     if args.apply_normalization:
-        # normalize_values(xy)
-
+       
         scaler = MinMaxScaler()
         scaler.fit(x_train_unsupervised)
         x_train_unsupervised = scaler.transform(x_train_unsupervised)

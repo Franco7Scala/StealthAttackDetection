@@ -20,7 +20,7 @@ This repository contains the code and resources for the **DDM (Data Driven Monit
   * `model/predictive_model_noise.py`: Contains the implementation of the overall dual-layer neural architecture combining the pre-trained backbone and the classification head;
   * `arn/`: Implements the ARN core components, including the VAE and discriminator (`model.py`), adversarial training routines (`trainer.py`), custom loss functions (`loss.py`), and configurations;
   * `dataset/`: Utilities and specific loaders for the three evaluated threat scenarios (`_cobalt_loader.py` for C&C beaconing, `_covert_loader.py` for covert channels, `_slowdos_loader.py` for slow DoS);
-  * `support/`: Helper scripts containing argument parsers (`arguments.py`), custom loss implementations (`cost_sensitive.py`, `focal_loss.py`), and generic utilities (`utils.py`).
+  * `support/`: Helper scripts containing argument parsers (`arguments.py`),  and generic utilities (`utils.py`).
 
 - **`requirements.txt`**: List of project dependencies.
 

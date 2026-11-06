@@ -35,7 +35,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
             nn.Linear(12, output_size),
         )
         self.to(self.device)
-        self.attack_type = self.params['attack_type']      # prende direttamente il valore da params
+        self.attack_type = self.params['attack_type']     
         self.save_folder = self.params['SAVE_FOLDER']
         self.n_exps = self.params['n_exps']
         self.n_runs = self.params['n_runs']
@@ -49,21 +49,16 @@ class ConcatenatedPredictiveVAE(nn.Module):
         os.makedirs(self.probs_csv_dir, exist_ok=True)
 
     def forward(self, x):
-        #if self.random_noise:
-         #   x = x + torch.randn(x.size()).to(x.device) * self.std + self.mean
 
         x1 = self.model1.encode(x) #ff network
         _, x3, _ = self.model3.encode(x) #VAE network
         features = torch.cat((x1, x3, x), dim=1)
-        #x = x1 #
         logits = self.fully_connected_1(features)
         return logits.flatten()
 
-# -----train and test-----#
+# train epoch without batch aware sampling for balanced training
     def _train_epoch(self, train_loader, optimizer, criterion):
         self.train()
-
-        #-----freeze model1, model2 and model3-----#
         self.model1.train()
         self.model3.eval()
         for param in self.model1.parameters():
@@ -71,8 +66,6 @@ class ConcatenatedPredictiveVAE(nn.Module):
 
         for param in self.model3.parameters():
             param.requires_grad = False
-        # -----freeze model1, model2 and model3-----#
-
         loss_sum = 0
         count = 0
 
@@ -80,186 +73,16 @@ class ConcatenatedPredictiveVAE(nn.Module):
             optimizer.zero_grad()
             x = x.to(self.device)
             y = y.to(self.device)
-
             logits = self(x)
             loss = criterion(logits, y)
             loss.backward()
-            #torch.nn.utils.clip_grad_norm_(self.parameters(), 0.5)
             optimizer.step()
             loss_sum += loss.item()
             count += 1
 
-       # _, _, _, _, auc_, _, _ = self.evaluate(train_loader, criterion)
-       # print(f"Auc: {auc_}")
-
         return loss_sum / count
 
-    def _train_one_epoch_balanced_new(
-        self,
-        train_loader,
-        optimizer,
-        criterion,
-        batch_size,
-        min_budget=5,
-        k=1):
-        
-
-        self.train()
-        self.model1.train()
-        self.model3.eval()
-    
-        # abilita gradienti solo per model1
-        for param in self.model1.parameters():
-            param.requires_grad = True
-    
-        for param in self.model3.parameters():
-            param.requires_grad = False
-    
-        # ==========================================
-        # CARICAMENTO COMPLETO DATASET
-        # ==========================================
-    
-        x_all = []
-        y_all = []
-    
-        for x, y in train_loader:
-            x_all.append(x)
-            y_all.append(y)
-    
-        x_all = torch.cat(x_all, dim=0)
-        y_all = torch.cat(y_all, dim=0)
-    
-        # ==========================================
-        # SEPARAZIONE POSITIVI / NEGATIVI
-        # ==========================================
-    
-        mask_pos = (y_all == 1)
-        mask_neg = (y_all == 0)
-    
-        x_pos = x_all[mask_pos].to(self.device)
-        y_pos = y_all[mask_pos].to(self.device)
-    
-        x_neg = x_all[mask_neg].to(self.device)
-        y_neg = y_all[mask_neg].to(self.device)
-    
-        n_pos = len(x_pos)
-        n_neg_total = len(x_neg)
-    
-        # ==========================================
-        # CONFIGURAZIONE BATCH
-        # ==========================================
-    
-        # batch size fisso
-        current_batch_size = batch_size
-    
-        # numero positivi per batch
-        n_pos_batch = k * min_budget
-    
-        # numero negativi per batch
-        n_neg_batch = current_batch_size - n_pos_batch
-    
-        if n_neg_batch <= 0:
-            raise ValueError(
-                "n_neg_batch <= 0. "
-                "Aumenta batch_size oppure riduci min_budget/k."
-            )
-    
-        # numero batch per epoca
-        n_batches = max(1, n_neg_total // n_neg_batch)
-    
-        # puntatore sequenziale positivi
-        pos_ptr = 0
-    
-        epoch_loss = 0.0
-    
-        # ==========================================
-        # TRAINING LOOP
-        # ==========================================
-    
-        for _ in tqdm(range(n_batches)):
-    
-            # --------------------------------------
-            # POSITIVI SEQUENZIALI CICLICI
-            # --------------------------------------
-    
-            if pos_ptr + n_pos_batch > n_pos:
-                pos_ptr = 0
-    
-            xb_pos = x_pos[pos_ptr:pos_ptr + n_pos_batch]
-            yb_pos = y_pos[pos_ptr:pos_ptr + n_pos_batch]
-    
-            pos_ptr += n_pos_batch
-    
-            # --------------------------------------
-            # RUMORE SOLO AI POSITIVI
-            # --------------------------------------
-    
-            if self.random_noise:
-                noise = (
-                    torch.randn_like(xb_pos) * self.std
-                    + self.mean
-                )
-                xb_pos = xb_pos + noise
-    
-            # --------------------------------------
-            # NEGATIVI RANDOM
-            # --------------------------------------
-    
-            idx_neg = torch.randint(
-                high=n_neg_total,
-                size=(n_neg_batch,),
-                device=self.device
-            )
-    
-            xb_neg = x_neg[idx_neg]
-            yb_neg = y_neg[idx_neg]
-    
-            # --------------------------------------
-            # COSTRUZIONE BATCH
-            # --------------------------------------
-    
-            x_batch = torch.cat([xb_pos, xb_neg], dim=0)
-    
-            y_batch = torch.cat(
-                [yb_pos, yb_neg],
-                dim=0
-            ).float()
-    
-            # shuffle batch
-            perm = torch.randperm(
-                len(y_batch),
-                device=self.device
-            )
-    
-            x_batch = x_batch[perm]
-            y_batch = y_batch[perm]
-    
-            # --------------------------------------
-            # FORWARD / BACKWARD
-            # --------------------------------------
-    
-            optimizer.zero_grad()
-    
-            logits = self(x_batch)
-    
-            loss = criterion(logits, y_batch)
-    
-            loss.backward()
-    
-            optimizer.step()
-    
-            epoch_loss += loss.item()
-    
-        # ==========================================
-        # METRICHE EPOCH
-        # ==========================================
-    
-        epoch_loss /= n_batches
-    
-        print(f"Epoch loss: {epoch_loss:.6f}")
-    
-        return epoch_loss
-
+ # train epoch with batch aware sampling for balanced training   
     def _train_one_epoch_balanced(self, train_loader, optimizer, criterion, batch_size, min_budget = 5,k=1):
         self.train()
         self.model1.train()
@@ -289,10 +112,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
         y_neg = y_all[mask_neg].to(self.device)
         n_pos = x_pos.size(0)
         
-        #current_batch_size = int((n_pos / min_budget) * batch_size)
-    
-        #n_neg = current_batch_size - n_pos
-        #n_batches = len(x_neg) // n_neg
+        
 
         current_batch_size = int(k*(n_pos / min_budget) * batch_size)
         n_neg = current_batch_size - k*n_pos
@@ -306,28 +126,17 @@ class ConcatenatedPredictiveVAE(nn.Module):
         epoch_loss = 0.0
 
         for i in tqdm(range(n_batches)):
-
-     
-            #xb_pos = x_pos
-            #yb_pos = y_pos
-            # --- APPLICAZIONE RUMORE SOLO AI POSITIVI (ATTACCHI) ---
             xb_pos = torch.cat([x_pos] * k, dim=0)
             yb_pos = torch.cat([y_pos] * k, dim=0)
             if self.random_noise:
                 noise = torch.randn_like(xb_pos) * self.std + self.mean
                 xb_pos = xb_pos + noise
-
-            #idx_neg = torch.randperm(len(x_neg))[:n_neg]
             idx_neg = torch.randint(high=len(x_neg), size=(n_neg,), device=self.device)
             xb_neg = x_neg[idx_neg]
             yb_neg = y_neg[idx_neg]
     
-            # batch completo
             x_batch = torch.cat([xb_pos, xb_neg], dim=0)
-
             y_batch = torch.cat([yb_pos, yb_neg], dim=0).float()
-    
-            # shuffle batch
             perm = torch.randperm(len(y_batch))
             x_batch = x_batch[perm]
             y_batch = y_batch[perm]
@@ -343,8 +152,6 @@ class ConcatenatedPredictiveVAE(nn.Module):
     
         epoch_loss /= n_batches
         print(f"Epoch loss: {epoch_loss:.6f}")
-        # _, _, _, _, auc_, _, _, _,_,_ = self.evaluate(train_loader, criterion)
-        # print(f"Auc: {auc_}")
         return epoch_loss
 
 
@@ -397,14 +204,12 @@ class ConcatenatedPredictiveVAE(nn.Module):
         gmean_macro = np.prod(recalls_per_class) ** (1 / len(recalls_per_class))
 
         #---------------------------------------
-        # Step 7: Plot the Precision-Recall curve.
         plt.plot(rc_recall, rc_precision, marker='.', label='Logistic')
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.title('Precision-Recall curve')
         plt.savefig(os.path.join(self.prc_dir, f'pr_curve_{evaluation_on}.png'))
 
-        #Step 8: Plot the ROC-AUC-CURVE
         plt.figure(figsize=(8,6))
         plt.plot(fpr, tpr)
         plt.xlabel('False Positive Rate')
@@ -414,26 +219,11 @@ class ConcatenatedPredictiveVAE(nn.Module):
         plt.savefig(os.path.join(self.auc_dir, f'roc_curve_{evaluation_on}.png'))
         plt.close()
         
-        #plt.show()
-        # ---------------------------------------
-
         precision_am.update(precision)
         recall_am.update(recall)
         f1_am.update(f1)
-
         self.no_grad = False
-
-
-        #string_csv = "\n".join([str(x) for x in output_probs])
-
-        #with open(f"{get_base_dir()}/output_probs_{evaluation_on}.csv", "w") as f:
-          #  f.write(string_csv)
-
-        
-        # Creiamo un array con le colonne: y_true, y_pred_prob
         output_array = np.column_stack((all_targets, all_pred_probs))
-        
-        # Salviamo il CSV
         csv_path = os.path.join(self.probs_csv_dir, f'output_{evaluation_on}.csv')
         np.savetxt(csv_path, output_array, delimiter=',', header='y_true,y_pred_prob', comments='')
         
@@ -453,8 +243,7 @@ class ConcatenatedPredictiveVAE(nn.Module):
                 avg_loss = self._train_one_epoch_balanced(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
             else:
                 avg_loss = self._train_epoch(train_loader, optimizer, criterion)
-            #avg_loss = self._train_epoch(train_loader, optimizer, criterion)
-            #avg_loss = self._train_one_epoch_balanced_new(train_loader, optimizer, criterion,batch_size,min_budget=5,k=k)
+           
             train_losses_per_epoch.append(avg_loss)
 
             _, _, _, _, auc_, _, pr_auc, _,_,_ = self.evaluate(train_loader, criterion)
@@ -497,8 +286,6 @@ class ConcatenatedPredictiveVAE(nn.Module):
         plt.show()
         plt.close()
         
-
-# -----train and test-----#
 
 class AverageMeter(object):
     def __init__(self, name, fmt=':f'):

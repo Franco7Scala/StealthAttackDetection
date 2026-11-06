@@ -16,9 +16,6 @@ class DiscriminatorLoss(nn.Module):
         y_real = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
         y_fake = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
 
-        # y_real = generate_labels(bs,0.3,0.,0.3, step, up=False).to(self.device)
-        # y_fake = generate_labels(bs,0.3,0.7,1., step, up=True).to(self.device)
-
         D_real_loss = self.criterion(true_preds, y_real)
         D_fake_loss = self.criterion(fake_preds, y_fake)
 

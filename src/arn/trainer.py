@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import numpy as np
-
 from time import time
 import sys
 import os

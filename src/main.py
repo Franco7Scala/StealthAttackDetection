@@ -7,12 +7,10 @@ import pandas as pd
 from src.dataset.dataset_loader import load_dataset, get_dataloaders
 from src.support.arguments import parse_arguments
 from src.model.predictive_model_noise import ConcatenatedPredictiveVAE
-from src.support.focal_loss import FocalLoss
-from src.support.cost_sensitive import CostSensitiveLoss
 from src.support.utils import set_reproducibility, print_args
 from src.arn.model import Generator, Discriminator
 import json
-from src.support.twersky_loss import TverskyLoss
+
 
 def main():
     args = parse_arguments()
@@ -61,12 +59,8 @@ def main():
                                             random_noise=random_noise, mean=mean, std=std)
     CPVAE_optimizer = torch.optim.Adam(CPVAE_model.parameters(), lr=0.0001)
     CPVAE_criterion = nn.BCEWithLogitsLoss()
-    CPVAE_criterion = CostSensitiveLoss(
-    fn_weight=16.0,
-    fp_weight=16.0
-)
-    #CPVAE_criterion = FocalLoss(gamma=64, alpha=0.5, reduction="mean")
-    #CPVAE_criterion = TverskyLoss()
+   
+    
 
     our_model_folder = os.path.join(args.SAVE_FOLDER, 'our_models')
     os.makedirs(our_model_folder, exist_ok=True)
@@ -104,7 +98,7 @@ def main():
     print(cr)
 
     row = {
-    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "run_id": args.n_runs,   
     "attack_type": args.attack_type,
     "model": "CPVAE",
 
@@ -154,7 +148,7 @@ def main():
     print(cr)
 
     row = {
-    "run_id": args.n_runs,   # oppure args.run_id se lo usi così
+    "run_id": args.n_runs,   
     "attack_type": args.attack_type,
     "model": "CPVAE",
 

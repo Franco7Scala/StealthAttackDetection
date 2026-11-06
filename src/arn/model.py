@@ -15,17 +15,10 @@ class Generator(nn.Module):
             nn.Linear(self.nf_in, self.nf_out),
             nn.BatchNorm1d(self.nf_out),
             nn.ReLU(0.2),
-
-            # nn.Linear(self.nf_out * 2, self.nf_out),
-            # nn.BatchNorm1d(self.nf_out, track_running_stats = False),
-            # nn.LeakyReLU(0.2)
         )
 
         self.decoder = nn.Sequential(
-            # nn.Linear(self.nf_out, self.nf_out * 2),
-            # nn.BatchNorm1d(self.nf_out * 2, track_running_stats = False),
-            # nn.ReLU(),
-            # nn.Dropout(p=0.2),
+
             nn.Linear(self.nf_out, self.nf_in)
         )
 
@@ -95,7 +88,7 @@ class Discriminator(nn.Module):
         self.nout = nout
 
         self.feature_extractor = nn.Sequential(
-            # features extractor
+
             nn.Linear(self.nc, self.nout),
             nn.BatchNorm1d(self.nout),
             nn.ReLU(),
@@ -104,25 +97,14 @@ class Discriminator(nn.Module):
             nn.BatchNorm1d(self.nout),
             nn.ReLU(),
 
-            # nn.Linear(self.nout * 2, self.nout * 4),
-            # nn.BatchNorm1d(self.nout * 4, track_running_stats = False),
-            # nn.LeakyReLU(0.2),
         )
 
         self.fc1 = nn.Sequential(
-            # classifier
+
             nn.Linear(self.nout, self.nout),
             nn.BatchNorm1d(self.nout),
             nn.Dropout(0.05),
             nn.ReLU(),
-
-            # nn.Linear(self.nout, self.nc_out * 4),
-            # nn.BatchNorm1d(self.nc_out * 4, track_running_stats = False),
-            # nn.ReLU(),
-
-            # nn.Dropout(0.2),
-            # nn.Linear(self.nc_out * 2, self.nc_out * 2),
-            # nn.ReLU(),
 
             nn.Linear(self.nout, self.nc_out),
             nn.BatchNorm1d(self.nc_out),
