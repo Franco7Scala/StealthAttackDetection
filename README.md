@@ -1,6 +1,6 @@
 # A Semi-Supervised Few-Shot Framework for Detecting Stealth Malicious Network Traffic
 
-[![Paper](https://img.shields.io/badge/Paper-Machine_Learning-brightgreen.svg)]()
+[![Paper](https://img.shields.io/badge/Paper-Machine_Learning-brightgreen.svg)](https://doi.org/10.1007/s10994-026-07190-z)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This repository contains the code and resources for the **DDM (Data Driven Monitor)** framework presented in the research paper "A Semi-Supervised Few-Shot Framework for Detecting Stealth Malicious Network Traffic". Our proposal addresses the challenge of detecting advanced, stealthy network threats (such as covert data exfiltration, C&C beaconing, and slow DoS attacks) in scenarios with extreme label scarcity by combining semi-supervised representation learning on benign traffic with a few-shot adaptation module.
@@ -37,4 +37,15 @@ To run the code, ensure you have the libraries specified in `requirements.txt` i
 ## Citation
 
 ```bibtex
-Coming soon...
+ @article{Caviglione2026,
+   author    = {Caviglione, Luca and Guarascio, Massimo and Liguori, Angelica and Scala, Francesco and Valente, Bernardo},
+   title     = {A Semi-supervised Few-Shot Framework for Detecting Stealth Malicious Network Traffic},
+   journal   = {Machine Learning},
+   year      = {2026},
+   volume    = {115},
+   number    = {12},
+   pages     = {259},
+   issn      = {1573-0565},
+   doi       = {10.1007/s10994-026-07190-z},
+   url       = {https://doi.org/10.1007/s10994-026-07190-z}
+ }
